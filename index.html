@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trivia Trens - Login</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section id="auth-screen" class="card">
+        <h1>Login</h1>
+        <input id="email" type="email" placeholder="E-mail" />
+        <input id="password" type="password" placeholder="Senha" />
+        <button id="login-btn">Entrar</button>
+
+        <h2>Registrar</h2>
+        <input id="register-email" type="email" placeholder="E-mail corporativo" />
+        <input id="register-password" type="password" placeholder="Senha" />
+        <button id="register-btn">Registrar</button>
+        <p class="hint">Somente e-mails @triviatrens.com.br</p>
+      </section>
+
+      <section id="change-password-screen" class="card hidden">
+        <h1>Troca obrigatória de senha</h1>
+        <p>Você está com senha padrão. Defina uma nova senha.</p>
+        <input id="new-password" type="password" placeholder="Nova senha" />
+        <input id="confirm-password" type="password" placeholder="Confirmar nova senha" />
+        <button id="change-password-btn">Salvar nova senha</button>
+      </section>
+
+      <section id="home-screen" class="card hidden">
+        <h1>Bem-vindo</h1>
+        <p id="welcome-text"></p>
+        <button id="logout-btn">Sair</button>
+      </section>
+    </main>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
