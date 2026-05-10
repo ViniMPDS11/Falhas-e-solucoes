@@ -21,11 +21,11 @@ body {
   gap: 10px;
 }
 .hidden { display: none; }
-input, button { padding: 10px; }
-.hint { color: #666; font-size: 12px; }
+button { padding: 10px; }
 
-.secondary-btn {
-  background: transparent;
-  border: 1px solid #bbb;
-  color: #333;
+.google-btn {
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  color: #3c4043;
+  font-weight: 600;
 }
