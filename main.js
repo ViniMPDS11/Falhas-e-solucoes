@@ -25,9 +25,8 @@ const firebaseConfig = {
 
 const DEFAULT_DOMAIN = '@triviatrens.com.br';
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+let auth;
+let db;
 
 const authScreen = document.getElementById('auth-screen');
 const changePasswordScreen = document.getElementById('change-password-screen');
@@ -44,8 +43,8 @@ const registerForm = document.getElementById('register-form');
 
 function setAuthMode(mode) {
   const showLogin = mode === 'login';
-  loginForm.classList.toggle('hidden', !showLogin);
-  registerForm.classList.toggle('hidden', showLogin);
+  loginForm?.classList.toggle('hidden', !showLogin);
+  registerForm?.classList.toggle('hidden', showLogin);
 }
 
 function showScreen(name) {
@@ -64,6 +63,21 @@ async function mustChangePassword(uid) {
   return userDoc.data().mustChangePassword === true;
 }
 
+
+document.getElementById('show-register-btn')?.addEventListener('click', () => {
+  setAuthMode('register');
+});
+
+document.getElementById('show-login-btn')?.addEventListener('click', () => {
+  setAuthMode('login');
+});
+
+setAuthMode('login');
+
+const app = initializeApp(firebaseConfig);
+auth = getAuth(app);
+db = getFirestore(app);
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     showScreen('auth');
@@ -78,14 +92,6 @@ onAuthStateChanged(auth, async (user) => {
 
   welcomeText.textContent = user.displayName || user.email;
   showScreen('home');
-});
-
-document.getElementById('show-register-btn').addEventListener('click', () => {
-  setAuthMode('register');
-});
-
-document.getElementById('show-login-btn').addEventListener('click', () => {
-  setAuthMode('login');
 });
 
 document.getElementById('login-btn').addEventListener('click', async () => {
