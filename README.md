@@ -35,11 +35,11 @@ Sugestão segura neste cenário:
 ## Deploy no Render (site estático)
 1. Suba este repositório no GitHub.
 2. No Render, crie **Static Site** apontando para o repo.
-3. Configure o publish directory para a raiz (`.`).
-4. Ou use o `render.yaml` como referência.
+3. Configure o publish directory para `webapp`.
+4. Ou use o `webapp/render.yaml` como referência.
 
 ## Configuração Firebase
-No arquivo `main.js`, preencha:
+No arquivo `webapp/main.js`, preencha:
 - `apiKey`
 - `authDomain`
 - `projectId`
