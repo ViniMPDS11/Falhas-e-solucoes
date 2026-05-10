@@ -39,6 +39,15 @@ const passwordInput = document.getElementById('password');
 const registerEmailInput = document.getElementById('register-email');
 const registerPasswordInput = document.getElementById('register-password');
 
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+
+function setAuthMode(mode) {
+  const showLogin = mode === 'login';
+  loginForm.classList.toggle('hidden', !showLogin);
+  registerForm.classList.toggle('hidden', showLogin);
+}
+
 function showScreen(name) {
   authScreen.classList.add('hidden');
   changePasswordScreen.classList.add('hidden');
@@ -58,6 +67,7 @@ async function mustChangePassword(uid) {
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     showScreen('auth');
+    setAuthMode('login');
     return;
   }
 
@@ -68,6 +78,14 @@ onAuthStateChanged(auth, async (user) => {
 
   welcomeText.textContent = user.displayName || user.email;
   showScreen('home');
+});
+
+document.getElementById('show-register-btn').addEventListener('click', () => {
+  setAuthMode('register');
+});
+
+document.getElementById('show-login-btn').addEventListener('click', () => {
+  setAuthMode('login');
 });
 
 document.getElementById('login-btn').addEventListener('click', async () => {

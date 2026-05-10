@@ -23,3 +23,9 @@ body {
 .hidden { display: none; }
 input, button { padding: 10px; }
 .hint { color: #666; font-size: 12px; }
+
+.secondary-btn {
+  background: transparent;
+  border: 1px solid #bbb;
+  color: #333;
+}
