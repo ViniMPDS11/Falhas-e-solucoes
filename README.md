@@ -9,10 +9,10 @@
 - Tela provisória pós-login com mensagem de boas-vindas.
 
 ## Estrutura
-- `webapp/index.html`: telas (login, registro, troca de senha, home).
-- `webapp/main.js`: regras de autenticação, registro, login e troca de senha.
-- `webapp/styles.css`: estilo básico.
-- `webapp/render.yaml`: exemplo de configuração para Render Static Site.
+- `index.html`: telas (login, registro, troca de senha, home).
+- `main.js`: regras de autenticação, registro, login e troca de senha.
+- `styles.css`: estilo básico.
+- `render.yaml`: exemplo de configuração para Render Static Site.
 
 ## Como funciona a lista separada de e-mails
 1. Crie a coleção `allowed_emails` no Firestore.
