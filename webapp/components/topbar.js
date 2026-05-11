@@ -12,7 +12,7 @@ export function renderTopbar({ userName }) {
       </button>
     </header>
 
-    <div id="profile-modal" class="modal-backdrop hidden">
+    <div id="profile-modal" class="modal-backdrop profile-backdrop hidden">
       <section class="profile-modal">
         <h3>Conta</h3>
         <p class="profile-line"><strong>Nome:</strong> <span class="user-name">${userName}</span></p>
