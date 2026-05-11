@@ -18,6 +18,14 @@ const viewHost = document.getElementById('view-host');
 let router;
 let syncTimer;
 
+function detectBasePath() {
+  const isGithubPages = window.location.hostname.endsWith('github.io');
+  if (!isGithubPages) return '';
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts.length ? `/${parts[0]}` : '';
+}
+
+
 function showAuth() { authScreen.classList.remove('hidden'); appShell.classList.add('hidden'); }
 function showApp() { authScreen.classList.add('hidden'); appShell.classList.remove('hidden'); }
 
@@ -45,15 +53,18 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('logout-btn').onclick = () => signOut(auth);
   startSyncClock();
 
+  const basePath = detectBasePath();
   router = createRouter({
     mount: viewHost,
+    basename: basePath,
     routes: [
       { path: '/dashboard', component: async () => dashboardPage(), onMounted: () => wireDashboard({ navigate: router.navigate, user }) },
       { path: '/failure/:id', component: ({ id }) => failureDetailsPage(id), onMounted: () => { document.getElementById('back-dashboard').onclick = () => router.navigate('/dashboard'); } },
     ],
   });
 
-  if (!window.location.pathname.startsWith('/failure/')) router.navigate('/dashboard');
+  const appPath = router.withoutBase(window.location.pathname);
+  if (!appPath.startsWith('/failure/')) router.navigate('/dashboard');
   else router.render(window.location.pathname);
 });
 

@@ -1,4 +1,18 @@
-export function createRouter({ mount, routes }) {
+export function createRouter({ mount, routes, basename = '' }) {
+  const normalizedBase = basename && basename !== '/' ? `/${basename.replace(/^\/+|\/+$/g, '')}` : '';
+
+  function withBase(path) {
+    if (!normalizedBase) return path;
+    return path.startsWith(normalizedBase) ? path : `${normalizedBase}${path}`;
+  }
+
+  function withoutBase(path) {
+    if (!normalizedBase) return path;
+    if (!path.startsWith(normalizedBase)) return path;
+    const stripped = path.slice(normalizedBase.length);
+    return stripped || '/';
+  }
+
   function match(path) {
     for (const route of routes) {
       const keys = [];
@@ -12,7 +26,8 @@ export function createRouter({ mount, routes }) {
     return null;
   }
 
-  async function render(pathname = window.location.pathname) {
+  async function render(fullPathname = window.location.pathname) {
+    const pathname = withoutBase(fullPathname);
     const found = match(pathname);
     if (!found) return;
     mount.innerHTML = await found.route.component(found.params);
@@ -20,10 +35,11 @@ export function createRouter({ mount, routes }) {
   }
 
   function navigate(path) {
-    window.history.pushState({}, '', path);
-    render(path);
+    const target = withBase(path);
+    window.history.pushState({}, '', target);
+    render(target);
   }
 
   window.addEventListener('popstate', () => render(window.location.pathname));
-  return { navigate, render };
+  return { navigate, render, withBase, withoutBase };
 }
