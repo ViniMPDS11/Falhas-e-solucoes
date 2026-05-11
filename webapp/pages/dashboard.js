@@ -58,15 +58,23 @@ export async function wireDashboard({ navigate, user }) {
       loadMoreBtn.classList.add('hidden');
       return;
     }
+
     listEl.innerHTML = '<p class=\"muted\">Buscando...</p>';
-    const parts = term.split(/\s+/).filter(Boolean);
-    const localMatches = loadedItems.filter((item) => {
-      const text = `${item.trainId} ${item.type} ${item.summary}`.toLowerCase();
-      return parts.every((p) => text.includes(p));
-    });
-    const remoteResults = await Promise.all(parts.map((p) => searchFailures(p)));
-    const merged = [...new Map([...localMatches, ...remoteResults.flat()].map((item) => [item.id, item])).values()];
-    listEl.innerHTML = merged.length ? merged.map(failureCard).join('') : '<p class=\"muted\">Nenhum resultado encontrado.</p>';
+
+    try {
+      const parts = term.split(/\s+/).filter(Boolean);
+      const localMatches = loadedItems.filter((item) => {
+        const text = `${item.trainId} ${item.type} ${item.summary}`.toLowerCase();
+        return parts.every((p) => text.includes(p));
+      });
+      const remoteResults = await Promise.all(parts.map((p) => searchFailures(p)));
+      const merged = [...new Map([...localMatches, ...remoteResults.flat()].map((item) => [item.id, item])).values()];
+      listEl.innerHTML = merged.length ? merged.map(failureCard).join('') : '<p class=\"muted\">Nenhum resultado encontrado.</p>';
+    } catch (error) {
+      console.error(error);
+      listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca agora. Tente novamente.</p>';
+    }
+
     loadMoreBtn.classList.add('hidden');
   }
 
