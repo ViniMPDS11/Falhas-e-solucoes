@@ -10,8 +10,23 @@ body { margin: 0; font-family: Inter, Arial, sans-serif; background: var(--bg); 
 .user-name { font-weight: 600; }
 .dashboard-header { display:flex; justify-content:space-between; align-items:center; gap: 12px; }
 .failure-list { display:grid; gap: 12px; margin: 16px 0; }
-.failure-card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,.06); transition: transform .15s ease, box-shadow .15s ease; }
-.failure-card:hover { transform: translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.09); }
+.failure-card {
+  position: relative;
+  background-color: #30344c;
+  border-radius: 10px;
+  box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.18);
+  padding: 14px;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.failure-card:hover { transform: translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.2); }
+.failure-card .body { display:flex; flex-direction:column; }
+.failure-title { margin:0 0 6px; color:#f3f6ff; font-size:16px; font-weight:700; }
+.failure-card .text { margin:0 0 8px; white-space:pre-line; color:#c0c3d7; line-height:1.5; }
+.failure-card .username { color:#c6e1ed; font-size:12px; font-weight:600; }
+.failure-card .footer { width:100%; color:#9fa4aa; font-size:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; }
+.failure-card .meta-item { display:flex; align-items:center; gap:6px; }
+.failure-card .meta-item svg { width:16px; height:16px; fill:#9fa4aa; stroke:#9fa4aa; }
+.failure-card .btn-link { margin-left:auto; color:#c6dcff; font-weight:600; }
 .line1, .line3 { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .badge { background:#e8f0ff; color:#254ecf; padding:4px 8px; border-radius:999px; font-size:12px; }
 .summary { color:#2e3a44; margin:10px 0; }
