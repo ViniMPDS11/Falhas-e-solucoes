@@ -1,4 +1,4 @@
-export function createRouter({ mount, routes, basename = '' }) {
+export function createRouter({ mount, routes, basename = '', mode = 'history' }) {
   const normalizedBase = basename && basename !== '/' ? `/${basename.replace(/^\/+|\/+$/g, '')}` : '';
 
   function withBase(path) {
@@ -11,6 +11,14 @@ export function createRouter({ mount, routes, basename = '' }) {
     if (!path.startsWith(normalizedBase)) return path;
     const stripped = path.slice(normalizedBase.length);
     return stripped || '/';
+  }
+
+  function getCurrentPath() {
+    if (mode === 'hash') {
+      const hashPath = window.location.hash.replace(/^#/, '');
+      return hashPath || '/dashboard';
+    }
+    return withoutBase(window.location.pathname);
   }
 
   function match(path) {
@@ -26,8 +34,7 @@ export function createRouter({ mount, routes, basename = '' }) {
     return null;
   }
 
-  async function render(fullPathname = window.location.pathname) {
-    const pathname = withoutBase(fullPathname);
+  async function render(pathname = getCurrentPath()) {
     const found = match(pathname);
     if (!found) return;
     mount.innerHTML = await found.route.component(found.params);
@@ -35,11 +42,20 @@ export function createRouter({ mount, routes, basename = '' }) {
   }
 
   function navigate(path) {
+    if (mode === 'hash') {
+      window.location.hash = path;
+      return;
+    }
     const target = withBase(path);
     window.history.pushState({}, '', target);
-    render(target);
+    render(path);
   }
 
-  window.addEventListener('popstate', () => render(window.location.pathname));
-  return { navigate, render, withBase, withoutBase };
+  if (mode === 'hash') {
+    window.addEventListener('hashchange', () => render(getCurrentPath()));
+  } else {
+    window.addEventListener('popstate', () => render(getCurrentPath()));
+  }
+
+  return { navigate, render, getCurrentPath, withBase, withoutBase };
 }
