@@ -26,3 +26,6 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .failure-form input, .failure-form select, .failure-form textarea { width:100%; border:1px solid #d7dfe7; border-radius:10px; padding:10px; font:inherit; }
 .actions { display:flex; gap:8px; justify-content:flex-end; }
 .muted { color: var(--muted); font-size: 13px; }
+
+.search-row { display:flex; gap:8px; margin-top:12px; }
+.search-row button { background:#0d1722; color:#fff; }

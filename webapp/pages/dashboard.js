@@ -10,7 +10,7 @@ export function dashboardPage() {
   return `
   <section class="dashboard-page">
     <div class="dashboard-header"><h1>Falhas Registradas</h1><button id="new-failure-btn" class="fab">⊕ Registrar Falha</button></div>
-    <input id="search-input" placeholder="Buscar por trem, tipo ou palavra-chave" />
+    <div class="search-row"><input id="search-input" placeholder="Buscar por trem, falha ou palavra-chave" /><button id="search-btn">Buscar</button></div>
     <div id="failure-list" class="failure-list"></div>
     <button id="load-more-btn" class="btn-secondary">Carregar mais</button>
   </section>`;
@@ -19,6 +19,7 @@ export function dashboardPage() {
 export async function wireDashboard({ navigate, user }) {
   const listEl = document.getElementById('failure-list');
   const loadMoreBtn = document.getElementById('load-more-btn');
+  const searchInput = document.getElementById('search-input');
 
   async function renderNextPage(reset = false) {
     if (loading) return;
@@ -42,18 +43,38 @@ export async function wireDashboard({ navigate, user }) {
     }
   }
 
+  async function runSearch() {
+    const term = searchInput.value.trim().toLowerCase();
+    if (!term) {
+      cursor = null;
+      await renderNextPage(true);
+      return;
+    }
+    if (term.length < 3) {
+      listEl.innerHTML = '<p class="muted">Digite ao menos 3 caracteres para buscar.</p>';
+      loadMoreBtn.classList.add('hidden');
+      return;
+    }
+    const parts = term.split(/\s+/).filter(Boolean);
+    const results = await Promise.all(parts.map((p) => searchFailures(p)));
+    const merged = [...new Map(results.flat().map((item) => [item.id, item])).values()];
+    listEl.innerHTML = merged.length ? merged.map(failureCard).join('') : '<p class="muted">Nenhum resultado encontrado.</p>';
+    loadMoreBtn.classList.add('hidden');
+  }
+
   await renderNextPage(true);
 
   loadMoreBtn.onclick = () => renderNextPage(false);
-
-  document.getElementById('search-input').addEventListener('input', debounce(async (e) => {
-    const term = e.target.value.trim().toLowerCase();
-    if (!term) return renderNextPage(true);
-    if (term.length < 3) return;
-    const items = await searchFailures(term);
-    listEl.innerHTML = items.map(failureCard).join('');
-    loadMoreBtn.classList.add('hidden');
+  document.getElementById('search-btn').onclick = runSearch;
+  searchInput.addEventListener('input', debounce(() => {
+    if (!searchInput.value.trim()) runSearch();
   }, 400));
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      runSearch();
+    }
+  });
 
   listEl.addEventListener('click', (e) => {
     const id = e.target.dataset.openDetails;
@@ -64,6 +85,8 @@ export async function wireDashboard({ navigate, user }) {
     document.body.insertAdjacentHTML('beforeend', failureForm({ authorName: user.displayName || user.email }));
     const form = document.getElementById('failure-form');
     form.trainId.addEventListener('input', () => { form.trainId.value = form.trainId.value.toUpperCase(); });
+    form.type.addEventListener('input', () => { document.getElementById('type-counter').textContent = `${form.type.value.length}/50`; });
+    form.description.addEventListener('input', () => { document.getElementById('description-counter').textContent = `${form.description.value.length}/300`; });
     document.getElementById('cancel-failure-btn').onclick = () => document.getElementById('modal-backdrop').remove();
     form.onsubmit = async (ev) => {
       ev.preventDefault();
