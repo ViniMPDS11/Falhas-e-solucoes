@@ -28,9 +28,8 @@ body { margin: 0; font-family: Inter, Arial, sans-serif; background: var(--bg); 
 .failure-card .username { color:#476581; font-size:12px; font-weight:600; }
 .failure-card .footer { width:100%; color:#60758b; font-size:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; }
 .failure-card .meta-item { display:flex; align-items:center; gap:6px; color:#60758b; }
-.failure-card .meta-item svg { width:16px; height:16px; fill:none; stroke:#60758b; stroke-width:0.9; }
-.failure-card .meta-item .icon-stroke path { fill:none; stroke:currentColor; stroke-width:0.9; }
-.failure-card .meta-item .icon-stroke, .failure-card .meta-item .icon-stroke * { stroke:currentColor !important; fill:none !important; }
+.failure-card .meta-item svg { width:16px; height:16px; color:#60758b; }
+.failure-card .meta-item .icon-stroke, .failure-card .meta-item .icon-stroke * { fill:currentColor !important; stroke:currentColor !important; }
 
 .failure-card .btn-link { margin-left:auto; color:#255ea8; font-weight:600; }
 button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
