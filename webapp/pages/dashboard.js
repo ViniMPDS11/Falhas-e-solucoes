@@ -5,6 +5,7 @@ import { debounce } from '../utils/helpers.js';
 
 let cursor = null;
 let loading = false;
+let loadedItems = [];
 
 export function dashboardPage() {
   return `
@@ -28,8 +29,10 @@ export async function wireDashboard({ navigate, user }) {
       const page = await getFailuresPage(reset ? null : cursor);
       cursor = page.lastDoc;
       if (reset) listEl.innerHTML = '';
+      if (reset) loadedItems = [];
+      loadedItems.push(...page.items);
       if (!page.items.length && reset) {
-        listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
+        listEl.innerHTML = '<p class=\"muted\">Nenhuma falha encontrada.</p>';
       } else {
         listEl.insertAdjacentHTML('beforeend', page.items.map(failureCard).join(''));
       }
@@ -55,10 +58,15 @@ export async function wireDashboard({ navigate, user }) {
       loadMoreBtn.classList.add('hidden');
       return;
     }
+    listEl.innerHTML = '<p class=\"muted\">Buscando...</p>';
     const parts = term.split(/\s+/).filter(Boolean);
-    const results = await Promise.all(parts.map((p) => searchFailures(p)));
-    const merged = [...new Map(results.flat().map((item) => [item.id, item])).values()];
-    listEl.innerHTML = merged.length ? merged.map(failureCard).join('') : '<p class="muted">Nenhum resultado encontrado.</p>';
+    const localMatches = loadedItems.filter((item) => {
+      const text = `${item.trainId} ${item.type} ${item.summary}`.toLowerCase();
+      return parts.every((p) => text.includes(p));
+    });
+    const remoteResults = await Promise.all(parts.map((p) => searchFailures(p)));
+    const merged = [...new Map([...localMatches, ...remoteResults.flat()].map((item) => [item.id, item])).values()];
+    listEl.innerHTML = merged.length ? merged.map(failureCard).join('') : '<p class=\"muted\">Nenhum resultado encontrado.</p>';
     loadMoreBtn.classList.add('hidden');
   }
 
