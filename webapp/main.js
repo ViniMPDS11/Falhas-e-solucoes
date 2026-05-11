@@ -1,61 +1,76 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
 import {
-  getAuth,
-  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
   signOut,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+import { auth, provider } from './services/firebase.js';
+import { renderTopbar } from './components/topbar.js';
+import { createRouter } from './router/router.js';
+import { dashboardPage, wireDashboard } from './pages/dashboard.js';
+import { failureDetailsPage } from './pages/failure-details.js';
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyCQaJ-b6Q4JDW0O_7FFYvc7xBXeCNrfaC8',
-  authDomain: 'falhas-e-solucoes.firebaseapp.com',
-  projectId: 'falhas-e-solucoes',
-  storageBucket: 'falhas-e-solucoes.firebasestorage.app',
-  messagingSenderId: '178404125289',
-  appId: '1:178404125289:web:ca83a35479e84fa41490f8',
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 const CORPORATE_DOMAIN = '@triviatrens.com.br';
-let lastWelcomedUid = null;
-
 const authScreen = document.getElementById('auth-screen');
-const homeScreen = document.getElementById('home-screen');
-const welcomeText = document.getElementById('welcome-text');
+const appShell = document.getElementById('app-shell');
+const topbarHost = document.getElementById('topbar-host');
+const viewHost = document.getElementById('view-host');
 
-function showScreen(name) {
-  authScreen.classList.add('hidden');
-  homeScreen.classList.add('hidden');
+let router;
+let syncTimer;
 
-  if (name === 'auth') authScreen.classList.remove('hidden');
-  if (name === 'home') homeScreen.classList.remove('hidden');
+function isGithubPagesHost() {
+  return window.location.hostname.endsWith('github.io');
+}
+
+function detectBasePath() {
+  if (!isGithubPagesHost()) return '';
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts.length ? `/${parts[0]}` : '';
+}
+
+
+function showAuth() { authScreen.classList.remove('hidden'); appShell.classList.add('hidden'); }
+function showApp() { authScreen.classList.add('hidden'); appShell.classList.remove('hidden'); }
+
+function startSyncClock() {
+  let sec = 0;
+  clearInterval(syncTimer);
+  syncTimer = setInterval(() => {
+    sec += 1;
+    const el = document.getElementById('sync-status');
+    if (el) el.textContent = `Última sincronização há ${sec} segundos`;
+  }, 1000);
 }
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    lastWelcomedUid = null;
-    showScreen('auth');
-    return;
-  }
-
+  if (!user) return showAuth();
   const email = (user.email || '').toLowerCase();
   if (!email.endsWith(CORPORATE_DOMAIN)) {
     alert('Use seu e-mail corporativo da Trivia Trens (@triviatrens.com.br).');
     await signOut(auth);
-    showScreen('auth');
-    return;
+    return showAuth();
   }
 
-  if (lastWelcomedUid !== user.uid) {
-    alert(`Bem-vindo(a), ${user.displayName || user.email}!`);
-    lastWelcomedUid = user.uid;
-  }
+  showApp();
+  topbarHost.innerHTML = renderTopbar({ userName: user.displayName || user.email });
+  document.getElementById('logout-btn').onclick = () => signOut(auth);
+  startSyncClock();
 
-  welcomeText.textContent = user.displayName || user.email;
-  showScreen('home');
+  const basePath = detectBasePath();
+  const mode = isGithubPagesHost() ? 'hash' : 'history';
+  router = createRouter({
+    mount: viewHost,
+    basename: basePath,
+    mode,
+    routes: [
+      { path: '/dashboard', component: async () => dashboardPage(), onMounted: () => wireDashboard({ navigate: router.navigate, user }) },
+      { path: '/failure/:id', component: ({ id }) => failureDetailsPage(id), onMounted: () => { document.getElementById('back-dashboard').onclick = () => router.navigate('/dashboard'); } },
+    ],
+  });
+
+  const appPath = router.getCurrentPath();
+  if (!appPath.startsWith('/failure/')) router.navigate('/dashboard');
+  else router.render(appPath);
 });
 
 document.getElementById('google-login-btn').addEventListener('click', async () => {
@@ -64,8 +79,4 @@ document.getElementById('google-login-btn').addEventListener('click', async () =
   } catch (error) {
     alert(`Erro no login com Google: ${error.message}`);
   }
-});
-
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  await signOut(auth);
 });
