@@ -43,7 +43,12 @@ export function createRouter({ mount, routes, basename = '', mode = 'history' })
 
   function navigate(path) {
     if (mode === 'hash') {
-      window.location.hash = path;
+      const nextHash = `#${path}`;
+      if (window.location.hash === nextHash) {
+        render(path);
+      } else {
+        window.location.hash = path;
+      }
       return;
     }
     const target = withBase(path);

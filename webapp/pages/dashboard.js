@@ -23,12 +23,23 @@ export async function wireDashboard({ navigate, user }) {
   async function renderNextPage(reset = false) {
     if (loading) return;
     loading = true;
-    const page = await getFailuresPage(reset ? null : cursor);
-    cursor = page.lastDoc;
-    if (reset) listEl.innerHTML = '';
-    listEl.insertAdjacentHTML('beforeend', page.items.map(failureCard).join(''));
-    loadMoreBtn.classList.toggle('hidden', !page.hasMore);
-    loading = false;
+    try {
+      const page = await getFailuresPage(reset ? null : cursor);
+      cursor = page.lastDoc;
+      if (reset) listEl.innerHTML = '';
+      if (!page.items.length && reset) {
+        listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
+      } else {
+        listEl.insertAdjacentHTML('beforeend', page.items.map(failureCard).join(''));
+      }
+      loadMoreBtn.classList.toggle('hidden', !page.hasMore);
+    } catch (error) {
+      console.error(error);
+      if (reset) listEl.innerHTML = '<p class="muted">Não foi possível carregar as falhas agora.</p>';
+      loadMoreBtn.classList.add('hidden');
+    } finally {
+      loading = false;
+    }
   }
 
   await renderNextPage(true);
