@@ -24,25 +24,49 @@ function normalizeSeriesList(values = []) {
   return [...new Set(values.map((value) => String(value || '').toUpperCase()).filter((value) => allowed.has(value)))].sort();
 }
 
-function getSelectedSeriesFromUrl() {
+function readFiltersFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  const raw = params.get('series') || '';
-  return normalizeSeriesList(raw.split(',').filter(Boolean));
+  const rawSeries = params.get('series') || '';
+  return {
+    series: normalizeSeriesList(rawSeries.split(',').filter(Boolean)),
+    dateFrom: params.get('dateFrom') || '',
+    dateTo: params.get('dateTo') || '',
+  };
 }
 
-function persistSelectedSeries(values) {
-  const selected = normalizeSeriesList(values);
+function persistFilters({ series, dateFrom, dateTo }) {
   const params = new URLSearchParams(window.location.search);
-  if (selected.length) params.set('series', selected.join(','));
+  const normalizedSeries = normalizeSeriesList(series);
+  if (normalizedSeries.length) params.set('series', normalizedSeries.join(','));
   else params.delete('series');
+  if (dateFrom) params.set('dateFrom', dateFrom); else params.delete('dateFrom');
+  if (dateTo) params.set('dateTo', dateTo); else params.delete('dateTo');
   const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash}`;
   window.history.replaceState({}, '', next);
 }
 
-function applySeriesFilter(items, selectedSeries) {
-  if (!selectedSeries.length) return items;
-  const series = new Set(selectedSeries);
-  return items.filter((item) => series.has(String(item.trainId || '').charAt(0).toUpperCase()));
+function isInDateRange(itemDate, dateFrom, dateTo) {
+  if (!itemDate) return !dateFrom && !dateTo;
+  const check = new Date(itemDate);
+  if (dateFrom) {
+    const from = new Date(`${dateFrom}T00:00:00`);
+    if (check < from) return false;
+  }
+  if (dateTo) {
+    const to = new Date(`${dateTo}T23:59:59`);
+    if (check > to) return false;
+  }
+  return true;
+}
+
+function applyFilters(items, filters) {
+  const series = new Set(filters.series || []);
+  return items.filter((item) => {
+    const itemSeries = String(item.trainId || '').charAt(0).toUpperCase();
+    const seriesOk = !series.size || series.has(itemSeries);
+    const dateOk = isInDateRange(item.createdAt, filters.dateFrom, filters.dateTo);
+    return seriesOk && dateOk;
+  });
 }
 
 export function dashboardPage() {
@@ -68,14 +92,34 @@ export function dashboardPage() {
           </svg>
         </button>
       </div>
-      <div class="series-filter" title="Cada letra do ID do trem representa uma série operacional.">
-        <label for="series-filter-select" class="series-filter-label">Série do trem</label>
-        <select id="series-filter-select" class="series-filter-select" multiple aria-label="Filtrar por série do trem">
-          ${SERIES_OPTIONS.map((option) => `<option value="${option.value}">${option.label}</option>`).join('')}
-        </select>
-      </div>
+      <button id="open-filters-btn" class="filters-btn" type="button" aria-label="Abrir filtros" title="Abrir filtros">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M19 3H5C3.58579 3 2.87868 3 2.43934 3.4122C2 3.8244 2 4.48782 2 5.81466V6.50448C2 7.54232 2 8.06124 2.2596 8.49142C2.5192 8.9216 2.99347 9.18858 3.94202 9.72255L6.85504 11.3624C7.49146 11.7206 7.80967 11.8998 8.03751 12.0976C8.51199 12.5095 8.80408 12.9935 8.93644 13.5872C9 13.8722 9 14.2058 9 14.8729L9 17.5424C9 18.452 9 18.9067 9.25192 19.2613C9.50385 19.6158 9.95128 19.7907 10.8462 20.1406C12.7248 20.875 13.6641 21.2422 14.3321 20.8244C15 20.4066 15 19.4519 15 17.5424V14.8729C15 14.2058 15 13.8722 15.0636 13.5872C15.1959 12.9935 15.488 12.5095 15.9625 12.0976C16.1903 11.8998 16.5085 11.7206 17.145 11.3624L20.058 9.72255C21.0065 9.18858 21.4808 8.9216 21.7404 8.49142C22 8.06124 22 7.54232 22 6.50448V5.81466C22 4.48782 22 3.8244 21.5607 3.4122C21.1213 3 20.4142 3 19 3Z" stroke-width="1.5"></path>
+        </svg>
+        <span>Filtros</span>
+      </button>
     </div>
     <p class="series-legend muted">Legenda operacional: cada letra no início do ID do trem indica uma série específica.</p>
+    <div id="filters-modal" class="filters-modal-backdrop hidden">
+      <div class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filters-title">
+        <div class="filters-head">
+          <h3 id="filters-title">Filtros da listagem</h3>
+          <button id="close-filters-btn" class="filters-close-btn" type="button" aria-label="Fechar filtros">✕</button>
+        </div>
+        <p class="filters-subtitle">Refine por série e período de abertura.</p>
+        <div class="series-chip-group" title="Cada letra do ID do trem representa uma série operacional.">
+          ${SERIES_OPTIONS.map((option) => `<label class="series-chip"><input type="checkbox" value="${option.value}" data-series-filter /> <span>${option.label}</span></label>`).join('')}
+        </div>
+        <div class="date-filter-grid">
+          <label>De<input id="date-from-filter" type="date" /></label>
+          <label>Até<input id="date-to-filter" type="date" /></label>
+        </div>
+        <div class="filters-actions">
+          <button id="clear-filters-btn" class="btn-secondary" type="button">Limpar</button>
+          <button id="apply-filters-btn" class="filters-apply-btn" type="button">Aplicar filtros</button>
+        </div>
+      </div>
+    </div>
     <div id="failure-list" class="failure-list"></div>
     <div id="pagination" class="pagination hidden">
       <button id="prev-page-btn" class="pagination-btn" type="button">← Anterior</button>
@@ -92,18 +136,29 @@ export async function wireDashboard({ navigate, user }) {
   const nextPageBtn = document.getElementById('next-page-btn');
   const pageIndicator = document.getElementById('page-indicator');
   const searchInput = document.getElementById('search-input');
-  const seriesFilterSelect = document.getElementById('series-filter-select');
-  let selectedSeries = getSelectedSeriesFromUrl();
+  const filtersModal = document.getElementById('filters-modal');
+  const openFiltersBtn = document.getElementById('open-filters-btn');
+  const closeFiltersBtn = document.getElementById('close-filters-btn');
+  const applyFiltersBtn = document.getElementById('apply-filters-btn');
+  const clearFiltersBtn = document.getElementById('clear-filters-btn');
+  const dateFromFilter = document.getElementById('date-from-filter');
+  const dateToFilter = document.getElementById('date-to-filter');
+  const seriesInputs = [...document.querySelectorAll('[data-series-filter]')];
+  let activeFilters = readFiltersFromUrl();
 
-  function syncSeriesFilterUI() {
-    const selected = new Set(selectedSeries);
-    [...seriesFilterSelect.options].forEach((option) => {
-      option.selected = selected.has(option.value);
-    });
+  function syncFilterUI() {
+    const selected = new Set(activeFilters.series);
+    seriesInputs.forEach((input) => { input.checked = selected.has(input.value); });
+    dateFromFilter.value = activeFilters.dateFrom || '';
+    dateToFilter.value = activeFilters.dateTo || '';
   }
 
-  function getSelectedSeriesFromControl() {
-    return normalizeSeriesList([...seriesFilterSelect.selectedOptions].map((option) => option.value));
+  function collectFiltersFromUI() {
+    return {
+      series: normalizeSeriesList(seriesInputs.filter((input) => input.checked).map((input) => input.value)),
+      dateFrom: dateFromFilter.value || '',
+      dateTo: dateToFilter.value || '',
+    };
   }
 
   function updatePaginationUI() {
@@ -133,7 +188,7 @@ export async function wireDashboard({ navigate, user }) {
       currentPage = pageNumber;
 
       loadedItems = [...page.items];
-      const filteredItems = applySeriesFilter(page.items, selectedSeries);
+      const filteredItems = applyFilters(page.items, activeFilters);
       if (!filteredItems.length) {
         listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
       } else {
@@ -177,7 +232,7 @@ export async function wireDashboard({ navigate, user }) {
 
     const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
 
-    const filteredMerged = applySeriesFilter(merged, selectedSeries);
+    const filteredMerged = applyFilters(merged, activeFilters);
     if (filteredMerged.length) {
       listEl.innerHTML = filteredMerged.map(failureCard).join('');
     } else if (remoteHasErrors) {
@@ -200,12 +255,28 @@ export async function wireDashboard({ navigate, user }) {
     if (hasNextPage) renderPage(currentPage + 1);
   };
   document.getElementById('search-btn').onclick = runSearch;
-  seriesFilterSelect.addEventListener('change', async () => {
-    selectedSeries = getSelectedSeriesFromControl();
-    persistSelectedSeries(selectedSeries);
+  openFiltersBtn.onclick = () => { syncFilterUI(); filtersModal.classList.remove('hidden'); };
+  closeFiltersBtn.onclick = () => filtersModal.classList.add('hidden');
+  filtersModal.addEventListener('click', (event) => { if (event.target === filtersModal) filtersModal.classList.add('hidden'); });
+  applyFiltersBtn.onclick = async () => {
+    const nextFilters = collectFiltersFromUI();
+    if (nextFilters.dateFrom && nextFilters.dateTo && nextFilters.dateFrom > nextFilters.dateTo) {
+      alert('A data inicial não pode ser maior que a data final.');
+      return;
+    }
+    activeFilters = nextFilters;
+    persistFilters(activeFilters);
+    filtersModal.classList.add('hidden');
     await runSearch();
-  });
-  syncSeriesFilterUI();
+  };
+  clearFiltersBtn.onclick = async () => {
+    activeFilters = { series: [], dateFrom: '', dateTo: '' };
+    syncFilterUI();
+    persistFilters(activeFilters);
+    filtersModal.classList.add('hidden');
+    await runSearch();
+  };
+  syncFilterUI();
   searchInput.addEventListener('input', debounce(() => {
     if (!searchInput.value.trim()) runSearch();
   }, 400));
