@@ -14,12 +14,21 @@ export function renderTopbar({ userName }) {
 
     <div id="profile-modal" class="modal-backdrop profile-backdrop hidden">
       <section class="profile-modal">
-        <h3>Conta</h3>
-        <p class="profile-line"><strong>Nome:</strong> <span class="user-name">${userName}</span></p>
-        <p id="sync-status" class="profile-line">Última sincronização há 0 segundos</p>
+        <div class="profile-modal-head">
+          <h3>Configurações</h3>
+          <p class="profile-subtitle">Sua sessão e preferências de conta</p>
+        </div>
+        <div class="profile-card-line">
+          <span class="profile-label">Usuário</span>
+          <span class="user-name">${userName}</span>
+        </div>
+        <div class="profile-card-line">
+          <span class="profile-label">Sincronização</span>
+          <span id="sync-status" class="profile-line">Última sincronização há 0 segundos</span>
+        </div>
         <div class="actions">
           <button id="close-settings-btn" class="btn-secondary">Fechar</button>
-          <button id="logout-btn" class="fab">Logout</button>
+          <button id="logout-btn" class="logout-btn">Logout</button>
         </div>
       </section>
     </div>

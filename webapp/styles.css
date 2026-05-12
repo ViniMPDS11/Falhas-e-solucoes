@@ -15,8 +15,12 @@ body { margin: 0; font-family: Inter, Arial, sans-serif; background: var(--bg); 
 .settings-btn svg * { fill:currentColor; }
 .settings-btn svg path { transform-box: fill-box; transform-origin:center; }
 .settings-btn:hover { background:#edf4ff; }
-.profile-modal { width:min(420px, 92vw); background:#fff; border:1px solid #dce6f4; border-radius:14px; padding:18px; box-shadow:0 20px 56px rgba(9,30,66,.28); }
-.profile-line { color:#334e68; margin:8px 0; }
+.profile-modal { width:min(440px, 92vw); background:linear-gradient(180deg,#ffffff,#f8fbff); border:1px solid #dce6f4; border-radius:16px; padding:20px; box-shadow:0 22px 60px rgba(9,30,66,.3); }
+.profile-modal-head h3 { margin:0; color:#17324d; }
+.profile-subtitle { margin:6px 0 14px; color:#6b7f94; font-size:13px; }
+.profile-card-line { display:flex; flex-direction:column; gap:4px; background:#fff; border:1px solid #e1eaf4; border-radius:12px; padding:12px; margin-bottom:10px; }
+.profile-label { font-size:12px; color:#6b7f94; font-weight:600; letter-spacing:.02em; text-transform:uppercase; }
+.profile-line { color:#334e68; margin:0; }
 .user-name { font-weight: 600; }
 .dashboard-header { display:flex; justify-content:space-between; align-items:center; gap: 12px; }
 .failure-list { display:grid; gap: 12px; margin: 16px 0; }
@@ -35,6 +39,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .fab { background: var(--primary); color:#fff; font-weight:700; }
 .btn-secondary { background:#edf1f5; }
 .btn-link { background:transparent; color:#0059ff; padding:0; }
+.logout-btn { background:#f04242; color:#fff; font-weight:700; }
+.logout-btn:hover { background:#d93737; }
 .modal-backdrop { position:fixed; inset:0; background:rgba(10,18,26,.45); display:grid; place-items:center; z-index:9999; padding:16px; }
 .profile-backdrop { z-index:20000 !important; }
 .modal { width:min(680px, 92vw); background:#fff; border-radius:14px; padding:18px; }
@@ -82,3 +88,53 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 
 .searchIcon { width:14px; height:14px; }
 .searchIcon path { fill:#5c6f82; }
+
+.add-failure-btn {
+  width: 180px;
+  height: 46px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0059ff, #2a74ff);
+  border: 1px solid #0f4ece;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(0, 89, 255, 0.24);
+}
+
+.add-failure-btn,
+.add-failure-btn span { transition: 220ms ease; }
+
+.add-failure-btn .text {
+  transform: translateX(22px);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.add-failure-btn .icon {
+  position: absolute;
+  right: 0;
+  border-left: 1px solid rgba(255,255,255,.35);
+  height: 100%;
+  width: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-failure-btn:hover { background: linear-gradient(135deg, #0f63ff, #3a82ff); }
+.add-failure-btn:active { background: linear-gradient(135deg, #004de2, #2166e6); }
+.add-failure-btn:hover .text { color: transparent; }
+.add-failure-btn:hover .icon { width: 100%; border-left: none; }
+.add-failure-btn:focus { outline: none; }
+.add-failure-btn:active .icon { transform: scale(0.92); }
+
+.buttonSpan {
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.noselect { user-select: none; -webkit-user-select: none; }
