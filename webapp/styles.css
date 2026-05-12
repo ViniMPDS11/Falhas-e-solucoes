@@ -179,11 +179,13 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
   background: radial-gradient(circle at 20% 10%, rgba(41,110,199,.28), transparent 35%), rgba(4, 13, 23, .62);
   backdrop-filter: blur(4px);
   display: grid;
-  place-items: center;
+  align-items: center;
+  justify-items: center;
   padding: 18px;
 }
 
 .failure-details-shell {
+  margin: auto;
   width: min(760px, 96vw);
   max-height: min(86vh, 860px);
   overflow: auto;
@@ -207,3 +209,17 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .failure-details-block h4 { margin:0 0 8px; color:#1a4068; }
 .failure-details-block p { margin:0; color:#3a556f; line-height:1.6; white-space:pre-wrap; }
 .failure-details-block.solution { background:linear-gradient(180deg,#f7fbff,#eff6ff); }
+
+
+@media (max-width: 680px) {
+  .failure-details-backdrop {
+    padding: 12px;
+  }
+
+  .failure-details-shell {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+    padding: 16px;
+  }
+}
