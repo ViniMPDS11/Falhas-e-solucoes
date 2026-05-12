@@ -53,6 +53,12 @@ onAuthStateChanged(auth, async (user) => {
 
   showApp();
   topbarHost.innerHTML = renderTopbar({ userName: user.displayName || user.email });
+  const profileModal = document.getElementById('profile-modal');
+  document.getElementById('settings-btn').onclick = () => profileModal.classList.remove('hidden');
+  document.getElementById('close-settings-btn').onclick = () => profileModal.classList.add('hidden');
+  profileModal.addEventListener('click', (event) => {
+    if (event.target === profileModal) profileModal.classList.add('hidden');
+  });
   document.getElementById('logout-btn').onclick = () => signOut(auth);
   startSyncClock();
 

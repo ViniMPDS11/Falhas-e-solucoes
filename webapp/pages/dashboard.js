@@ -58,15 +58,33 @@ export async function wireDashboard({ navigate, user }) {
       loadMoreBtn.classList.add('hidden');
       return;
     }
+
     listEl.innerHTML = '<p class=\"muted\">Buscando...</p>';
+
     const parts = term.split(/\s+/).filter(Boolean);
     const localMatches = loadedItems.filter((item) => {
       const text = `${item.trainId} ${item.type} ${item.summary}`.toLowerCase();
       return parts.every((p) => text.includes(p));
     });
-    const remoteResults = await Promise.all(parts.map((p) => searchFailures(p)));
-    const merged = [...new Map([...localMatches, ...remoteResults.flat()].map((item) => [item.id, item])).values()];
-    listEl.innerHTML = merged.length ? merged.map(failureCard).join('') : '<p class=\"muted\">Nenhum resultado encontrado.</p>';
+
+    const remoteResults = await Promise.allSettled(parts.map((p) => searchFailures(p)));
+    const remoteMatches = remoteResults
+      .filter((result) => result.status === 'fulfilled')
+      .flatMap((result) => result.value);
+    const remoteHasErrors = remoteResults.some((result) => result.status === 'rejected');
+
+    const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
+
+    if (merged.length) {
+      listEl.innerHTML = merged.map(failureCard).join('');
+    } else if (remoteHasErrors) {
+      listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
+    } else {
+      listEl.innerHTML = '<p class=\"muted\">Nenhum resultado encontrado.</p>';
+    }
+
+    if (remoteHasErrors) console.error('Falha parcial na busca remota.');
+
     loadMoreBtn.classList.add('hidden');
   }
 
