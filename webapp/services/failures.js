@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  getCountFromServer,
   doc,
   getDoc,
   getDocs,
@@ -17,9 +18,26 @@ import { summarize, toKeywords } from '../utils/helpers.js';
 const failuresCol = collection(db, 'failures');
 const cache = new Map();
 
-export async function getFailuresPage(lastDoc = null, pageSize = 20) {
-  const constraints = [orderBy('createdAt', 'desc'), limit(pageSize)];
-  if (lastDoc) constraints.push(startAfter(lastDoc));
+function toDateBounds(dateFrom, dateTo) {
+  const bounds = [];
+  if (dateFrom) bounds.push(where('createdAt', '>=', new Date(`${dateFrom}T00:00:00`)));
+  if (dateTo) bounds.push(where('createdAt', '<=', new Date(`${dateTo}T23:59:59`)));
+  return bounds;
+}
+
+function buildFilterConstraints(filters = {}) {
+  const constraints = [];
+  const series = Array.isArray(filters.series) ? filters.series : [];
+  if (series.length === 1) {
+    constraints.push(where('trainId', '>=', `${series[0]}`), where('trainId', '<', `${series[0]}\uf8ff`));
+  }
+  constraints.push(...toDateBounds(filters.dateFrom, filters.dateTo));
+  return constraints;
+}
+
+export async function getFailuresPage({ cursorDoc = null, pageSize = 20, sortBy = 'createdAt', sortDir = 'desc', filters = {} } = {}) {
+  const constraints = [...buildFilterConstraints(filters), orderBy(sortBy, sortDir), limit(pageSize)];
+  if (cursorDoc) constraints.push(startAfter(cursorDoc));
   const snap = await getDocs(query(failuresCol, ...constraints));
   const items = snap.docs.map((d) => {
     const data = d.data();
@@ -35,6 +53,12 @@ export async function getFailuresPage(lastDoc = null, pageSize = 20) {
     return item;
   });
   return { items, lastDoc: snap.docs.at(-1) || null, hasMore: snap.size === pageSize };
+}
+
+export async function getFailuresTotal(filters = {}) {
+  const q = query(failuresCol, ...buildFilterConstraints(filters));
+  const countSnap = await getCountFromServer(q);
+  return countSnap.data().count;
 }
 
 export async function searchFailures(term) {

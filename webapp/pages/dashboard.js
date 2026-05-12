@@ -1,15 +1,16 @@
 import { failureCard } from '../components/failure-card.js';
 import { failureForm } from '../components/failure-form.js';
-import { getFailuresPage, searchFailures, createFailure } from '../services/failures.js';
+import { getFailuresPage, getFailuresTotal, searchFailures, createFailure } from '../services/failures.js';
 import { debounce } from '../utils/helpers.js';
 
-let cursor = null;
 let loading = false;
 let loadedItems = [];
-const PAGE_SIZE = 5;
 let currentPage = 1;
+let pageSize = 5;
 let pageCursors = [null];
 let hasNextPage = false;
+let totalItems = 0;
+let sortDir = 'desc';
 const SERIES_OPTIONS = [
   { value: 'H', label: 'H - Hotel' },
   { value: 'Q', label: 'Q - Quebec' },
@@ -34,39 +35,28 @@ function readFiltersFromUrl() {
   };
 }
 
-function persistFilters({ series, dateFrom, dateTo }) {
+function readPaginationFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    page: Math.max(1, Number(params.get('page') || 1)),
+    size: [5, 10, 20, 50].includes(Number(params.get('size'))) ? Number(params.get('size')) : 5,
+    sortDir: params.get('sortDir') === 'asc' ? 'asc' : 'desc',
+  };
+}
+
+function persistState({ series, dateFrom, dateTo, page, size, order }) {
   const params = new URLSearchParams(window.location.search);
   const normalizedSeries = normalizeSeriesList(series);
   if (normalizedSeries.length) params.set('series', normalizedSeries.join(','));
   else params.delete('series');
   if (dateFrom) params.set('dateFrom', dateFrom); else params.delete('dateFrom');
   if (dateTo) params.set('dateTo', dateTo); else params.delete('dateTo');
+  params.set('page', String(page));
+  params.set('size', String(size));
+  params.set('sortBy', 'createdAt');
+  params.set('sortDir', order);
   const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash}`;
   window.history.replaceState({}, '', next);
-}
-
-function isInDateRange(itemDate, dateFrom, dateTo) {
-  if (!itemDate) return !dateFrom && !dateTo;
-  const check = new Date(itemDate);
-  if (dateFrom) {
-    const from = new Date(`${dateFrom}T00:00:00`);
-    if (check < from) return false;
-  }
-  if (dateTo) {
-    const to = new Date(`${dateTo}T23:59:59`);
-    if (check > to) return false;
-  }
-  return true;
-}
-
-function applyFilters(items, filters) {
-  const series = new Set(filters.series || []);
-  return items.filter((item) => {
-    const itemSeries = String(item.trainId || '').charAt(0).toUpperCase();
-    const seriesOk = !series.size || series.has(itemSeries);
-    const dateOk = isInDateRange(item.createdAt, filters.dateFrom, filters.dateTo);
-    return seriesOk && dateOk;
-  });
 }
 
 export function dashboardPage() {
@@ -122,9 +112,16 @@ export function dashboardPage() {
     </div>
     <div id="failure-list" class="failure-list"></div>
     <div id="pagination" class="pagination hidden">
+      <button id="first-page-btn" class="pagination-btn" type="button">« Primeira</button>
       <button id="prev-page-btn" class="pagination-btn" type="button">← Anterior</button>
-      <span id="page-indicator" class="page-indicator">Página 1</span>
+      <span id="page-indicator" class="page-indicator">Página 1 de 1 · 0 itens</span>
       <button id="next-page-btn" class="pagination-btn" type="button">Próxima →</button>
+      <button id="last-page-btn" class="pagination-btn" type="button">Última »</button>
+      <label class="muted">Itens por página
+        <select id="page-size-select">
+          <option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="50">50</option>
+        </select>
+      </label>
     </div>
   </section>`;
 }
@@ -134,6 +131,9 @@ export async function wireDashboard({ navigate, user }) {
   const paginationEl = document.getElementById('pagination');
   const prevPageBtn = document.getElementById('prev-page-btn');
   const nextPageBtn = document.getElementById('next-page-btn');
+  const firstPageBtn = document.getElementById('first-page-btn');
+  const lastPageBtn = document.getElementById('last-page-btn');
+  const pageSizeSelect = document.getElementById('page-size-select');
   const pageIndicator = document.getElementById('page-indicator');
   const searchInput = document.getElementById('search-input');
   const filtersModal = document.getElementById('filters-modal');
@@ -145,6 +145,11 @@ export async function wireDashboard({ navigate, user }) {
   const dateToFilter = document.getElementById('date-to-filter');
   const seriesInputs = [...document.querySelectorAll('[data-series-filter]')];
   let activeFilters = readFiltersFromUrl();
+  const state = readPaginationFromUrl();
+  currentPage = state.page;
+  pageSize = state.size;
+  sortDir = state.sortDir;
+  pageSizeSelect.value = String(pageSize);
 
   function syncFilterUI() {
     const selected = new Set(activeFilters.series);
@@ -163,13 +168,15 @@ export async function wireDashboard({ navigate, user }) {
 
   function updatePaginationUI() {
     paginationEl.classList.remove('hidden');
-    pageIndicator.textContent = `Página ${currentPage}`;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    pageIndicator.textContent = `Página ${currentPage} de ${totalPages} · ${totalItems} itens`;
+    firstPageBtn.disabled = currentPage === 1 || loading;
     prevPageBtn.disabled = currentPage === 1 || loading;
     nextPageBtn.disabled = !hasNextPage || loading;
+    lastPageBtn.disabled = currentPage >= totalPages || loading;
   }
 
   function resetPaginationState() {
-    cursor = null;
     currentPage = 1;
     pageCursors = [null];
     hasNextPage = false;
@@ -180,20 +187,20 @@ export async function wireDashboard({ navigate, user }) {
     loading = true;
     try {
       if (reset) resetPaginationState();
+      totalItems = await getFailuresTotal(activeFilters);
       const cursorForPage = pageCursors[pageNumber - 1] ?? null;
-      const page = await getFailuresPage(cursorForPage, PAGE_SIZE);
-      cursor = page.lastDoc;
+      const page = await getFailuresPage({ cursorDoc: cursorForPage, pageSize, sortBy: 'createdAt', sortDir, filters: activeFilters });
       if (page.lastDoc && !pageCursors[pageNumber]) pageCursors[pageNumber] = page.lastDoc;
       hasNextPage = page.hasMore;
       currentPage = pageNumber;
 
       loadedItems = [...page.items];
-      const filteredItems = applyFilters(page.items, activeFilters);
-      if (!filteredItems.length) {
+      if (!page.items.length) {
         listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
       } else {
-        listEl.innerHTML = filteredItems.map(failureCard).join('');
+        listEl.innerHTML = page.items.map(failureCard).join('');
       }
+      persistState({ ...activeFilters, page: currentPage, size: pageSize, order: sortDir });
       updatePaginationUI();
     } catch (error) {
       console.error(error);
@@ -232,9 +239,8 @@ export async function wireDashboard({ navigate, user }) {
 
     const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
 
-    const filteredMerged = applyFilters(merged, activeFilters);
-    if (filteredMerged.length) {
-      listEl.innerHTML = filteredMerged.map(failureCard).join('');
+    if (merged.length) {
+      listEl.innerHTML = merged.map(failureCard).join('');
     } else if (remoteHasErrors) {
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
     } else {
@@ -251,9 +257,18 @@ export async function wireDashboard({ navigate, user }) {
   prevPageBtn.onclick = () => {
     if (currentPage > 1) renderPage(currentPage - 1);
   };
+  firstPageBtn.onclick = () => renderPage(1, true);
   nextPageBtn.onclick = () => {
     if (hasNextPage) renderPage(currentPage + 1);
   };
+  lastPageBtn.onclick = async () => {
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    for (let p = currentPage + 1; p <= totalPages; p += 1) { // warm cursors
+      // eslint-disable-next-line no-await-in-loop
+      await renderPage(p, false);
+    }
+  };
+  pageSizeSelect.onchange = async () => { pageSize = Number(pageSizeSelect.value); await renderPage(1, true); };
   document.getElementById('search-btn').onclick = runSearch;
   openFiltersBtn.onclick = () => { syncFilterUI(); filtersModal.classList.remove('hidden'); };
   closeFiltersBtn.onclick = () => filtersModal.classList.add('hidden');
@@ -265,14 +280,14 @@ export async function wireDashboard({ navigate, user }) {
       return;
     }
     activeFilters = nextFilters;
-    persistFilters(activeFilters);
+    persistState({ ...activeFilters, page: 1, size: pageSize, order: sortDir });
     filtersModal.classList.add('hidden');
     await runSearch();
   };
   clearFiltersBtn.onclick = async () => {
     activeFilters = { series: [], dateFrom: '', dateTo: '' };
     syncFilterUI();
-    persistFilters(activeFilters);
+    persistState({ ...activeFilters, page: 1, size: pageSize, order: sortDir });
     filtersModal.classList.add('hidden');
     await runSearch();
   };
