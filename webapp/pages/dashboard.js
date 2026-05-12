@@ -11,7 +11,16 @@ export function dashboardPage() {
   return `
   <section class="dashboard-page">
     <div class="dashboard-header"><h1>Falhas Registradas</h1><button id="new-failure-btn" class="fab">⊕ Registrar Falha</button></div>
-    <div class="search-row"><input id="search-input" placeholder="Buscar por trem, falha ou palavra-chave" /><button id="search-btn">Buscar</button></div>
+    <div class="search-row">
+      <div class="InputContainer" role="search">
+        <input id="search-input" class="input" placeholder="Buscar por trem, falha ou palavra-chave" type="text" />
+        <button id="search-btn" class="search-trigger" type="button" aria-label="Buscar">
+          <svg class="searchIcon" viewBox="0 0 512 512" aria-hidden="true">
+            <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
     <div id="failure-list" class="failure-list"></div>
     <button id="load-more-btn" class="btn-secondary">Carregar mais</button>
   </section>`;
