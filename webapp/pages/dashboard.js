@@ -6,41 +6,89 @@ import { debounce } from '../utils/helpers.js';
 let cursor = null;
 let loading = false;
 let loadedItems = [];
+const PAGE_SIZE = 5;
+let currentPage = 1;
+let pageCursors = [null];
+let hasNextPage = false;
 
 export function dashboardPage() {
   return `
   <section class="dashboard-page">
-    <div class="dashboard-header"><h1>Falhas Registradas</h1><button id="new-failure-btn" class="fab">⊕ Registrar Falha</button></div>
-    <div class="search-row"><input id="search-input" placeholder="Buscar por trem, falha ou palavra-chave" /><button id="search-btn">Buscar</button></div>
+    <div class="dashboard-header">
+      <div>
+        <p class="dashboard-kicker">Painel operacional</p>
+        <h1 class="dashboard-title">Falhas Registradas</h1>
+      </div>
+      <button id="new-failure-btn" class="add-failure-btn noselect" aria-label="Registrar falha" title="Registrar falha">
+        <svg viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1z"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="search-row">
+      <div class="InputContainer" role="search">
+        <input id="search-input" class="input" placeholder="Buscar por trem, falha ou palavra-chave" type="text" />
+        <button id="search-btn" class="search-trigger" type="button" aria-label="Buscar">
+          <svg class="searchIcon" viewBox="0 0 512 512" aria-hidden="true">
+            <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
     <div id="failure-list" class="failure-list"></div>
-    <button id="load-more-btn" class="btn-secondary">Carregar mais</button>
+    <div id="pagination" class="pagination hidden">
+      <button id="prev-page-btn" class="pagination-btn" type="button">← Anterior</button>
+      <span id="page-indicator" class="page-indicator">Página 1</span>
+      <button id="next-page-btn" class="pagination-btn" type="button">Próxima →</button>
+    </div>
   </section>`;
 }
 
 export async function wireDashboard({ navigate, user }) {
   const listEl = document.getElementById('failure-list');
-  const loadMoreBtn = document.getElementById('load-more-btn');
+  const paginationEl = document.getElementById('pagination');
+  const prevPageBtn = document.getElementById('prev-page-btn');
+  const nextPageBtn = document.getElementById('next-page-btn');
+  const pageIndicator = document.getElementById('page-indicator');
   const searchInput = document.getElementById('search-input');
 
-  async function renderNextPage(reset = false) {
+  function updatePaginationUI() {
+    paginationEl.classList.remove('hidden');
+    pageIndicator.textContent = `Página ${currentPage}`;
+    prevPageBtn.disabled = currentPage === 1 || loading;
+    nextPageBtn.disabled = !hasNextPage || loading;
+  }
+
+  function resetPaginationState() {
+    cursor = null;
+    currentPage = 1;
+    pageCursors = [null];
+    hasNextPage = false;
+  }
+
+  async function renderPage(pageNumber = 1, reset = false) {
     if (loading) return;
     loading = true;
     try {
-      const page = await getFailuresPage(reset ? null : cursor);
+      if (reset) resetPaginationState();
+      const cursorForPage = pageCursors[pageNumber - 1] ?? null;
+      const page = await getFailuresPage(cursorForPage, PAGE_SIZE);
       cursor = page.lastDoc;
-      if (reset) listEl.innerHTML = '';
-      if (reset) loadedItems = [];
-      loadedItems.push(...page.items);
-      if (!page.items.length && reset) {
-        listEl.innerHTML = '<p class=\"muted\">Nenhuma falha encontrada.</p>';
+      if (page.lastDoc && !pageCursors[pageNumber]) pageCursors[pageNumber] = page.lastDoc;
+      hasNextPage = page.hasMore;
+      currentPage = pageNumber;
+
+      loadedItems = [...page.items];
+      if (!page.items.length) {
+        listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
       } else {
-        listEl.insertAdjacentHTML('beforeend', page.items.map(failureCard).join(''));
+        listEl.innerHTML = page.items.map(failureCard).join('');
       }
-      loadMoreBtn.classList.toggle('hidden', !page.hasMore);
+      updatePaginationUI();
     } catch (error) {
       console.error(error);
-      if (reset) listEl.innerHTML = '<p class="muted">Não foi possível carregar as falhas agora.</p>';
-      loadMoreBtn.classList.add('hidden');
+      listEl.innerHTML = '<p class="muted">Não foi possível carregar as falhas agora.</p>';
+      paginationEl.classList.add('hidden');
     } finally {
       loading = false;
     }
@@ -49,17 +97,16 @@ export async function wireDashboard({ navigate, user }) {
   async function runSearch() {
     const term = searchInput.value.trim().toLowerCase();
     if (!term) {
-      cursor = null;
-      await renderNextPage(true);
+      await renderPage(1, true);
       return;
     }
     if (term.length < 3) {
       listEl.innerHTML = '<p class="muted">Digite ao menos 3 caracteres para buscar.</p>';
-      loadMoreBtn.classList.add('hidden');
+      paginationEl.classList.add('hidden');
       return;
     }
 
-    listEl.innerHTML = '<p class=\"muted\">Buscando...</p>';
+    listEl.innerHTML = '<p class="muted">Buscando...</p>';
 
     const parts = term.split(/\s+/).filter(Boolean);
     const localMatches = loadedItems.filter((item) => {
@@ -80,17 +127,22 @@ export async function wireDashboard({ navigate, user }) {
     } else if (remoteHasErrors) {
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
     } else {
-      listEl.innerHTML = '<p class=\"muted\">Nenhum resultado encontrado.</p>';
+      listEl.innerHTML = '<p class="muted">Nenhum resultado encontrado.</p>';
     }
 
     if (remoteHasErrors) console.error('Falha parcial na busca remota.');
 
-    loadMoreBtn.classList.add('hidden');
+    paginationEl.classList.add('hidden');
   }
 
-  await renderNextPage(true);
+  await renderPage(1, true);
 
-  loadMoreBtn.onclick = () => renderNextPage(false);
+  prevPageBtn.onclick = () => {
+    if (currentPage > 1) renderPage(currentPage - 1);
+  };
+  nextPageBtn.onclick = () => {
+    if (hasNextPage) renderPage(currentPage + 1);
+  };
   document.getElementById('search-btn').onclick = runSearch;
   searchInput.addEventListener('input', debounce(() => {
     if (!searchInput.value.trim()) runSearch();
@@ -127,8 +179,7 @@ export async function wireDashboard({ navigate, user }) {
         user,
       });
       document.getElementById('modal-backdrop').remove();
-      cursor = null;
-      await renderNextPage(true);
+      await renderPage(1, true);
     };
   };
 }
