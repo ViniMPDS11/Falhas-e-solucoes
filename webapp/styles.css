@@ -116,3 +116,37 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 @media (max-width: 680px) {
   .dashboard-header { align-items: center; padding: 12px; }
 }
+
+.pagination {
+  margin: 18px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pagination-btn {
+  background: #ffffff;
+  border: 1px solid #cfdced;
+  color: #25476f;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #edf4ff;
+  border-color: #b8cdef;
+}
+
+.pagination-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.page-indicator {
+  min-width: 90px;
+  text-align: center;
+  color: #4a6078;
+  font-weight: 700;
+}
