@@ -2,6 +2,7 @@ import { failureCard } from '../components/failure-card.js';
 import { failureForm } from '../components/failure-form.js';
 import { getFailuresPage, getFailuresTotal, searchFailures, createFailure } from '../services/failures.js';
 import { debounce } from '../utils/helpers.js';
+import { openFailureDetailsModal } from '../components/failure-details-modal.js';
 
 let loading = false;
 let loadedItems = [];
@@ -302,9 +303,15 @@ export async function wireDashboard({ navigate, user }) {
     }
   });
 
-  listEl.addEventListener('click', (e) => {
+  listEl.addEventListener('click', async (e) => {
     const id = e.target.dataset.openDetails;
-    if (id) navigate(`/failure/${id}`);
+    if (!id) return;
+    try {
+      await openFailureDetailsModal(id);
+    } catch (error) {
+      console.error(error);
+      alert('Não foi possível carregar os detalhes dessa falha agora.');
+    }
   });
 
   document.getElementById('new-failure-btn').onclick = () => {

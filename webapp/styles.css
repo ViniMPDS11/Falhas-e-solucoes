@@ -171,3 +171,39 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
   color: #4a6078;
   font-weight: 700;
 }
+
+.failure-details-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25000;
+  background: radial-gradient(circle at 20% 10%, rgba(41,110,199,.28), transparent 35%), rgba(4, 13, 23, .62);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.failure-details-shell {
+  width: min(760px, 96vw);
+  max-height: min(86vh, 860px);
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid #d6e4fb;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: 0 28px 80px rgba(5, 29, 60, .4);
+  padding: 22px;
+}
+
+.failure-details-head { display:flex; justify-content:space-between; align-items:center; }
+.failure-details-kicker { margin:0; color:#4f7094; letter-spacing:.08em; text-transform:uppercase; font-weight:700; font-size:11px; }
+.failure-details-close { width:34px; height:34px; border-radius:10px; border:1px solid #d4e1f2; background:#edf4ff; color:#2f5278; padding:0; }
+.failure-details-shell h3 { margin:6px 0 8px; color:#14304d; font-size:30px; }
+.failure-details-summary { margin:0 0 14px; color:#355775; line-height:1.5; }
+.failure-details-grid { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom:14px; }
+.failure-details-grid div { background:#fff; border:1px solid #dfe9f7; border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:4px; }
+.failure-details-grid span { color:#67829d; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+.failure-details-grid strong { color:#163a5f; }
+.failure-details-block { border:1px solid #dbe7f7; background:#fff; border-radius:14px; padding:14px; margin-top:10px; }
+.failure-details-block h4 { margin:0 0 8px; color:#1a4068; }
+.failure-details-block p { margin:0; color:#3a556f; line-height:1.6; white-space:pre-wrap; }
+.failure-details-block.solution { background:linear-gradient(180deg,#f7fbff,#eff6ff); }
