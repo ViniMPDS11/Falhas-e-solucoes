@@ -10,7 +10,17 @@ let loadedItems = [];
 export function dashboardPage() {
   return `
   <section class="dashboard-page">
-    <div class="dashboard-header"><h1 class="dashboard-title">Falhas Registradas</h1><button id="new-failure-btn" class="add-failure-btn noselect"><span class="text">Registrar falha</span><span class="icon"><span class="buttonSpan">+</span></span></button></div>
+    <div class="dashboard-header">
+      <div>
+        <p class="dashboard-kicker">Painel operacional</p>
+        <h1 class="dashboard-title">Falhas Registradas</h1>
+      </div>
+      <button id="new-failure-btn" class="add-failure-btn noselect" aria-label="Registrar falha" title="Registrar falha">
+        <svg viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1z"></path>
+        </svg>
+      </button>
+    </div>
     <div class="search-row">
       <div class="InputContainer" role="search">
         <input id="search-input" class="input" placeholder="Buscar por trem, falha ou palavra-chave" type="text" />
