@@ -1,6 +1,6 @@
 import { failureCard } from '../components/failure-card.js';
 import { failureForm } from '../components/failure-form.js';
-import { getFailuresPage, getFailuresTotal, searchFailures, createFailure } from '../services/failures.js';
+import { getFailuresPage, getFailuresTotal, searchFailuresGlobal, createFailure } from '../services/failures.js';
 import { debounce } from '../utils/helpers.js';
 import { openFailureDetailsModal } from '../components/failure-details-modal.js';
 
@@ -228,34 +228,22 @@ export async function wireDashboard({ navigate, user }) {
       return;
     }
 
-    listEl.innerHTML = '<p class="muted">Buscando...</p>';
-
-    const parts = term.split(/\s+/).filter(Boolean);
-    const localMatches = loadedItems.filter((item) => {
-      const text = `${item.trainId} ${item.type} ${item.summary}`.toLowerCase();
-      return parts.every((p) => text.includes(p));
-    });
-
-    const remoteResults = await Promise.allSettled(parts.map((p) => searchFailures(p)));
-    const remoteMatches = remoteResults
-      .filter((result) => result.status === 'fulfilled')
-      .flatMap((result) => result.value);
-    const remoteHasErrors = remoteResults.some((result) => result.status === 'rejected');
-
-    const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
-
-    if (merged.length) {
-      listEl.innerHTML = merged.map(failureCard).join('');
-    } else if (remoteHasErrors) {
-      listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
-    } else {
-      listEl.innerHTML = '<p class="muted">Nenhum resultado encontrado.</p>';
+    listEl.innerHTML = '<p class="muted">Buscando em toda a base...</p>';
+    try {
+      const results = await searchFailuresGlobal(term, activeFilters);
+      if (results.length) {
+        listEl.innerHTML = results.map(failureCard).join('');
+      } else {
+        listEl.innerHTML = '<p class="muted">Nenhum resultado encontrado.</p>';
+      }
+    } catch (error) {
+      console.error(error);
+      listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca agora.</p>';
     }
-
-    if (remoteHasErrors) console.error('Falha parcial na busca remota.');
 
     paginationEl.classList.add('hidden');
   }
+
 
   await renderPage(1, true);
 

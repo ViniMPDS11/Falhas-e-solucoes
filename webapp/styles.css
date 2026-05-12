@@ -55,8 +55,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .filters-btn svg { width:18px; height:18px; stroke:currentColor; }
 .filters-btn:hover { background:linear-gradient(140deg,#f9fcff,#e4efff); transform:translateY(-1px); }
 .series-legend { margin: 8px 0 0; }
-.filters-modal-backdrop { position:fixed; inset:0; background:rgba(6,18,33,.5); backdrop-filter: blur(3px); display:grid; place-items:center; z-index:15000; padding:16px; }
-.filters-modal { width:min(620px,94vw); background:linear-gradient(180deg,#fff,#f7faff); border:1px solid #d6e4f7; border-radius:18px; padding:18px; box-shadow:0 26px 70px rgba(8,28,54,.35); }
+.filters-modal-backdrop { position:fixed; inset:0; background:rgba(6,18,33,.5); backdrop-filter: blur(3px); display:grid; align-items:center; justify-items:center; z-index:15000; padding:16px; }
+.filters-modal { margin:auto; width:min(620px,94vw); max-height:min(86vh,760px); overflow:auto; background:linear-gradient(180deg,#fff,#f7faff); border:1px solid #d6e4f7; border-radius:18px; padding:18px; box-shadow:0 26px 70px rgba(8,28,54,.35); }
 .filters-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
 .filters-head h3 { margin:0; color:#17324d; font-size:22px; }
 .filters-close-btn { background:#eff5fd; border:1px solid #d2e1f4; color:#274c74; width:34px; height:34px; border-radius:10px; padding:0; }
@@ -136,6 +136,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
   .dashboard-header { align-items: center; padding: 12px; }
   .search-row { flex-direction: column; gap: 10px; }
   .filters-btn { margin-left: 0; width: fit-content; }
+  .filters-modal-backdrop { padding: 12px; }
+  .filters-modal { width: 100%; max-height: calc(100dvh - 24px); border-radius: 16px; padding: 16px; }
 }
 
 .pagination {

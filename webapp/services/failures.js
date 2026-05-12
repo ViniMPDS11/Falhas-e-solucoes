@@ -101,6 +101,26 @@ export async function searchFailures(term) {
   });
 }
 
+
+export async function searchFailuresGlobal(term, filters = {}) {
+  const keyParts = String(term || '').toLowerCase().split(/\s+/).filter(Boolean);
+  if (!keyParts.length) return [];
+  const constraints = [...buildFilterConstraints(filters), orderBy('createdAt', 'desc')];
+  const snap = await getDocs(query(failuresCol, ...constraints));
+  const selectedSeries = Array.isArray(filters.series) ? filters.series : [];
+
+  return snap.docs
+    .filter((docSnap) => hasSeriesPrefix(docSnap.data().trainId, selectedSeries))
+    .map((docSnap) => {
+      const item = mapDocToItem(docSnap);
+      const cached = cache.get(item.id) || {};
+      const haystack = `${item.trainId} ${item.type} ${item.summary} ${cached.description || ''}`.toLowerCase();
+      return { item, match: keyParts.every((part) => haystack.includes(part)) };
+    })
+    .filter((entry) => entry.match)
+    .map((entry) => entry.item);
+}
+
 export async function getFailureById(id) {
   if (cache.has(id)) return cache.get(id);
   const snap = await getDoc(doc(db, 'failures', id));
