@@ -6,7 +6,7 @@ import { debounce } from '../utils/helpers.js';
 let loading = false;
 let loadedItems = [];
 let currentPage = 1;
-let pageSize = 5;
+const pageSize = 5;
 let pageCursors = [null];
 let hasNextPage = false;
 let totalItems = 0;
@@ -39,12 +39,11 @@ function readPaginationFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return {
     page: Math.max(1, Number(params.get('page') || 1)),
-    size: [5, 10, 20, 50].includes(Number(params.get('size'))) ? Number(params.get('size')) : 5,
     sortDir: params.get('sortDir') === 'asc' ? 'asc' : 'desc',
   };
 }
 
-function persistState({ series, dateFrom, dateTo, page, size, order }) {
+function persistState({ series, dateFrom, dateTo, page, order }) {
   const params = new URLSearchParams(window.location.search);
   const normalizedSeries = normalizeSeriesList(series);
   if (normalizedSeries.length) params.set('series', normalizedSeries.join(','));
@@ -52,11 +51,16 @@ function persistState({ series, dateFrom, dateTo, page, size, order }) {
   if (dateFrom) params.set('dateFrom', dateFrom); else params.delete('dateFrom');
   if (dateTo) params.set('dateTo', dateTo); else params.delete('dateTo');
   params.set('page', String(page));
-  params.set('size', String(size));
   params.set('sortBy', 'createdAt');
   params.set('sortDir', order);
   const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash}`;
   window.history.replaceState({}, '', next);
+}
+
+function applySeriesFilters(items, filters) {
+  const series = new Set(filters.series || []);
+  if (!series.size) return items;
+  return items.filter((item) => series.has(String(item.trainId || '').charAt(0).toUpperCase()));
 }
 
 export function dashboardPage() {
@@ -112,16 +116,11 @@ export function dashboardPage() {
     </div>
     <div id="failure-list" class="failure-list"></div>
     <div id="pagination" class="pagination hidden">
-      <button id="first-page-btn" class="pagination-btn" type="button">« Primeira</button>
-      <button id="prev-page-btn" class="pagination-btn" type="button">← Anterior</button>
+      <button id="first-page-btn" class="pagination-btn" type="button" aria-label="Primeira página">«</button>
+      <button id="prev-page-btn" class="pagination-btn" type="button" aria-label="Página anterior">‹</button>
       <span id="page-indicator" class="page-indicator">Página 1 de 1 · 0 itens</span>
-      <button id="next-page-btn" class="pagination-btn" type="button">Próxima →</button>
-      <button id="last-page-btn" class="pagination-btn" type="button">Última »</button>
-      <label class="muted">Itens por página
-        <select id="page-size-select">
-          <option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="50">50</option>
-        </select>
-      </label>
+      <button id="next-page-btn" class="pagination-btn" type="button" aria-label="Próxima página">›</button>
+      <button id="last-page-btn" class="pagination-btn" type="button" aria-label="Última página">»</button>
     </div>
   </section>`;
 }
@@ -133,7 +132,6 @@ export async function wireDashboard({ navigate, user }) {
   const nextPageBtn = document.getElementById('next-page-btn');
   const firstPageBtn = document.getElementById('first-page-btn');
   const lastPageBtn = document.getElementById('last-page-btn');
-  const pageSizeSelect = document.getElementById('page-size-select');
   const pageIndicator = document.getElementById('page-indicator');
   const searchInput = document.getElementById('search-input');
   const filtersModal = document.getElementById('filters-modal');
@@ -147,9 +145,7 @@ export async function wireDashboard({ navigate, user }) {
   let activeFilters = readFiltersFromUrl();
   const state = readPaginationFromUrl();
   currentPage = state.page;
-  pageSize = state.size;
   sortDir = state.sortDir;
-  pageSizeSelect.value = String(pageSize);
 
   function syncFilterUI() {
     const selected = new Set(activeFilters.series);
@@ -182,12 +178,25 @@ export async function wireDashboard({ navigate, user }) {
     hasNextPage = false;
   }
 
+  async function ensureCursorForPage(targetPage) {
+    if (targetPage <= 1) return;
+    for (let page = 1; page < targetPage; page += 1) {
+      if (pageCursors[page]) continue;
+      const prevCursor = pageCursors[page - 1] ?? null;
+      // eslint-disable-next-line no-await-in-loop
+      const chunk = await getFailuresPage({ cursorDoc: prevCursor, pageSize, sortBy: 'createdAt', sortDir, filters: activeFilters });
+      if (!chunk.lastDoc) break;
+      pageCursors[page] = chunk.lastDoc;
+    }
+  }
+
   async function renderPage(pageNumber = 1, reset = false) {
     if (loading) return;
     loading = true;
     try {
       if (reset) resetPaginationState();
       totalItems = await getFailuresTotal(activeFilters);
+      await ensureCursorForPage(pageNumber);
       const cursorForPage = pageCursors[pageNumber - 1] ?? null;
       const page = await getFailuresPage({ cursorDoc: cursorForPage, pageSize, sortBy: 'createdAt', sortDir, filters: activeFilters });
       if (page.lastDoc && !pageCursors[pageNumber]) pageCursors[pageNumber] = page.lastDoc;
@@ -195,19 +204,20 @@ export async function wireDashboard({ navigate, user }) {
       currentPage = pageNumber;
 
       loadedItems = [...page.items];
-      if (!page.items.length) {
+      const filteredItems = applySeriesFilters(page.items, activeFilters);
+      if (!filteredItems.length) {
         listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
       } else {
-        listEl.innerHTML = page.items.map(failureCard).join('');
+        listEl.innerHTML = filteredItems.map(failureCard).join('');
       }
-      persistState({ ...activeFilters, page: currentPage, size: pageSize, order: sortDir });
-      updatePaginationUI();
+      persistState({ ...activeFilters, page: currentPage, order: sortDir });
     } catch (error) {
       console.error(error);
       listEl.innerHTML = '<p class="muted">Não foi possível carregar as falhas agora.</p>';
       paginationEl.classList.add('hidden');
     } finally {
       loading = false;
+      updatePaginationUI();
     }
   }
 
@@ -240,7 +250,7 @@ export async function wireDashboard({ navigate, user }) {
     const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
 
     if (merged.length) {
-      listEl.innerHTML = merged.map(failureCard).join('');
+      listEl.innerHTML = applySeriesFilters(merged, activeFilters).map(failureCard).join('');
     } else if (remoteHasErrors) {
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
     } else {
@@ -263,12 +273,8 @@ export async function wireDashboard({ navigate, user }) {
   };
   lastPageBtn.onclick = async () => {
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-    for (let p = currentPage + 1; p <= totalPages; p += 1) { // warm cursors
-      // eslint-disable-next-line no-await-in-loop
-      await renderPage(p, false);
-    }
+    if (totalPages > 1) await renderPage(totalPages);
   };
-  pageSizeSelect.onchange = async () => { pageSize = Number(pageSizeSelect.value); await renderPage(1, true); };
   document.getElementById('search-btn').onclick = runSearch;
   openFiltersBtn.onclick = () => { syncFilterUI(); filtersModal.classList.remove('hidden'); };
   closeFiltersBtn.onclick = () => filtersModal.classList.add('hidden');
@@ -280,14 +286,14 @@ export async function wireDashboard({ navigate, user }) {
       return;
     }
     activeFilters = nextFilters;
-    persistState({ ...activeFilters, page: 1, size: pageSize, order: sortDir });
+    persistState({ ...activeFilters, page: 1, order: sortDir });
     filtersModal.classList.add('hidden');
     await runSearch();
   };
   clearFiltersBtn.onclick = async () => {
     activeFilters = { series: [], dateFrom: '', dateTo: '' };
     syncFilterUI();
-    persistState({ ...activeFilters, page: 1, size: pageSize, order: sortDir });
+    persistState({ ...activeFilters, page: 1, order: sortDir });
     filtersModal.classList.add('hidden');
     await runSearch();
   };

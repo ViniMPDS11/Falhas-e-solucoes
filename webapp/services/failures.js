@@ -27,10 +27,6 @@ function toDateBounds(dateFrom, dateTo) {
 
 function buildFilterConstraints(filters = {}) {
   const constraints = [];
-  const series = Array.isArray(filters.series) ? filters.series : [];
-  if (series.length === 1) {
-    constraints.push(where('trainId', '>=', `${series[0]}`), where('trainId', '<', `${series[0]}\uf8ff`));
-  }
   constraints.push(...toDateBounds(filters.dateFrom, filters.dateTo));
   return constraints;
 }
