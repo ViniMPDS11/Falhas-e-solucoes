@@ -51,6 +51,10 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .actions { display:flex; gap:8px; justify-content:flex-end; }
 .muted { color: var(--muted); font-size: 13px; }
 .search-row { display:flex; margin-top:12px; }
+.series-filter { margin-left: 12px; display:flex; flex-direction:column; gap:6px; }
+.series-filter-label { font-size:12px; color:#5d7692; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.series-filter-select { min-width: 190px; min-height: 42px; border:1px solid #dde3ea; border-radius:10px; padding:6px 8px; background:#fff; color:var(--text); font:inherit; }
+.series-legend { margin: 8px 0 0; }
 
 .InputContainer {
   width: min(420px, 100%);
@@ -115,6 +119,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 
 @media (max-width: 680px) {
   .dashboard-header { align-items: center; padding: 12px; }
+  .search-row { flex-direction: column; gap: 10px; }
+  .series-filter { margin-left: 0; }
 }
 
 .pagination {

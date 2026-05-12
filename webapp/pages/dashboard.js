@@ -10,6 +10,40 @@ const PAGE_SIZE = 5;
 let currentPage = 1;
 let pageCursors = [null];
 let hasNextPage = false;
+const SERIES_OPTIONS = [
+  { value: 'H', label: 'H - Hotel' },
+  { value: 'Q', label: 'Q - Quebec' },
+  { value: 'R', label: 'R - Romeu' },
+  { value: 'S', label: 'S - Sierra' },
+  { value: 'T', label: 'T - Tango' },
+  { value: 'U', label: 'U - Uniform' },
+];
+
+function normalizeSeriesList(values = []) {
+  const allowed = new Set(SERIES_OPTIONS.map((option) => option.value));
+  return [...new Set(values.map((value) => String(value || '').toUpperCase()).filter((value) => allowed.has(value)))].sort();
+}
+
+function getSelectedSeriesFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get('series') || '';
+  return normalizeSeriesList(raw.split(',').filter(Boolean));
+}
+
+function persistSelectedSeries(values) {
+  const selected = normalizeSeriesList(values);
+  const params = new URLSearchParams(window.location.search);
+  if (selected.length) params.set('series', selected.join(','));
+  else params.delete('series');
+  const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash}`;
+  window.history.replaceState({}, '', next);
+}
+
+function applySeriesFilter(items, selectedSeries) {
+  if (!selectedSeries.length) return items;
+  const series = new Set(selectedSeries);
+  return items.filter((item) => series.has(String(item.trainId || '').charAt(0).toUpperCase()));
+}
 
 export function dashboardPage() {
   return `
@@ -34,7 +68,14 @@ export function dashboardPage() {
           </svg>
         </button>
       </div>
+      <div class="series-filter" title="Cada letra do ID do trem representa uma série operacional.">
+        <label for="series-filter-select" class="series-filter-label">Série do trem</label>
+        <select id="series-filter-select" class="series-filter-select" multiple aria-label="Filtrar por série do trem">
+          ${SERIES_OPTIONS.map((option) => `<option value="${option.value}">${option.label}</option>`).join('')}
+        </select>
+      </div>
     </div>
+    <p class="series-legend muted">Legenda operacional: cada letra no início do ID do trem indica uma série específica.</p>
     <div id="failure-list" class="failure-list"></div>
     <div id="pagination" class="pagination hidden">
       <button id="prev-page-btn" class="pagination-btn" type="button">← Anterior</button>
@@ -51,6 +92,19 @@ export async function wireDashboard({ navigate, user }) {
   const nextPageBtn = document.getElementById('next-page-btn');
   const pageIndicator = document.getElementById('page-indicator');
   const searchInput = document.getElementById('search-input');
+  const seriesFilterSelect = document.getElementById('series-filter-select');
+  let selectedSeries = getSelectedSeriesFromUrl();
+
+  function syncSeriesFilterUI() {
+    const selected = new Set(selectedSeries);
+    [...seriesFilterSelect.options].forEach((option) => {
+      option.selected = selected.has(option.value);
+    });
+  }
+
+  function getSelectedSeriesFromControl() {
+    return normalizeSeriesList([...seriesFilterSelect.selectedOptions].map((option) => option.value));
+  }
 
   function updatePaginationUI() {
     paginationEl.classList.remove('hidden');
@@ -79,10 +133,11 @@ export async function wireDashboard({ navigate, user }) {
       currentPage = pageNumber;
 
       loadedItems = [...page.items];
-      if (!page.items.length) {
+      const filteredItems = applySeriesFilter(page.items, selectedSeries);
+      if (!filteredItems.length) {
         listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
       } else {
-        listEl.innerHTML = page.items.map(failureCard).join('');
+        listEl.innerHTML = filteredItems.map(failureCard).join('');
       }
       updatePaginationUI();
     } catch (error) {
@@ -122,8 +177,9 @@ export async function wireDashboard({ navigate, user }) {
 
     const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
 
-    if (merged.length) {
-      listEl.innerHTML = merged.map(failureCard).join('');
+    const filteredMerged = applySeriesFilter(merged, selectedSeries);
+    if (filteredMerged.length) {
+      listEl.innerHTML = filteredMerged.map(failureCard).join('');
     } else if (remoteHasErrors) {
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
     } else {
@@ -144,6 +200,12 @@ export async function wireDashboard({ navigate, user }) {
     if (hasNextPage) renderPage(currentPage + 1);
   };
   document.getElementById('search-btn').onclick = runSearch;
+  seriesFilterSelect.addEventListener('change', async () => {
+    selectedSeries = getSelectedSeriesFromControl();
+    persistSelectedSeries(selectedSeries);
+    await runSearch();
+  });
+  syncSeriesFilterUI();
   searchInput.addEventListener('input', debounce(() => {
     if (!searchInput.value.trim()) runSearch();
   }, 400));
