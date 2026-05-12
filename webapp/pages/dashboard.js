@@ -57,12 +57,6 @@ function persistState({ series, dateFrom, dateTo, page, order }) {
   window.history.replaceState({}, '', next);
 }
 
-function applySeriesFilters(items, filters) {
-  const series = new Set(filters.series || []);
-  if (!series.size) return items;
-  return items.filter((item) => series.has(String(item.trainId || '').charAt(0).toUpperCase()));
-}
-
 export function dashboardPage() {
   return `
   <section class="dashboard-page">
@@ -179,6 +173,7 @@ export async function wireDashboard({ navigate, user }) {
   }
 
   async function ensureCursorForPage(targetPage) {
+    if ((activeFilters.series || []).length) return;
     if (targetPage <= 1) return;
     for (let page = 1; page < targetPage; page += 1) {
       if (pageCursors[page]) continue;
@@ -198,17 +193,16 @@ export async function wireDashboard({ navigate, user }) {
       totalItems = await getFailuresTotal(activeFilters);
       await ensureCursorForPage(pageNumber);
       const cursorForPage = pageCursors[pageNumber - 1] ?? null;
-      const page = await getFailuresPage({ cursorDoc: cursorForPage, pageSize, sortBy: 'createdAt', sortDir, filters: activeFilters });
+      const page = await getFailuresPage({ cursorDoc: cursorForPage, page: pageNumber, pageSize, sortBy: 'createdAt', sortDir, filters: activeFilters });
       if (page.lastDoc && !pageCursors[pageNumber]) pageCursors[pageNumber] = page.lastDoc;
       hasNextPage = page.hasMore;
       currentPage = pageNumber;
 
       loadedItems = [...page.items];
-      const filteredItems = applySeriesFilters(page.items, activeFilters);
-      if (!filteredItems.length) {
+      if (!page.items.length) {
         listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
       } else {
-        listEl.innerHTML = filteredItems.map(failureCard).join('');
+        listEl.innerHTML = page.items.map(failureCard).join('');
       }
       persistState({ ...activeFilters, page: currentPage, order: sortDir });
     } catch (error) {
@@ -250,7 +244,7 @@ export async function wireDashboard({ navigate, user }) {
     const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
 
     if (merged.length) {
-      listEl.innerHTML = applySeriesFilters(merged, activeFilters).map(failureCard).join('');
+      listEl.innerHTML = merged.map(failureCard).join('');
     } else if (remoteHasErrors) {
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
     } else {
