@@ -6,10 +6,21 @@ import { debounce } from '../utils/helpers.js';
 let cursor = null;
 let loading = false;
 let loadedItems = [];
+let displayedItems = [];
 const PAGE_SIZE = 5;
 let currentPage = 1;
 let pageCursors = [null];
 let hasNextPage = false;
+
+const filterState = {
+  selectedSeries: [],
+  dateFrom: '',
+  dateTo: '',
+};
+
+function filterIcon() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.75C3 4.78 3.78 4 4.75 4h14.5c.97 0 1.75.78 1.75 1.75 0 .42-.15.82-.43 1.14L14 14v4.25c0 .37-.2.7-.52.88l-2.5 1.5A1 1 0 0 1 9.5 19.75V14l-6.57-7.11A1.74 1.74 0 0 1 3 5.75Z"></path></svg>`;
+}
 
 export function dashboardPage() {
   return `
@@ -25,6 +36,33 @@ export function dashboardPage() {
         </svg>
       </button>
     </div>
+
+    <div class="filters-desktop-panel">
+      <div class="filters-section-title">${filterIcon()} <span>Filtros</span></div>
+      <div class="filters-grid">
+        <label class="filter-field">
+          <span>Série</span>
+          <select id="series-filter" multiple></select>
+        </label>
+        <label class="filter-field">
+          <span>De</span>
+          <input id="date-from-filter" type="date" />
+        </label>
+        <label class="filter-field">
+          <span>Até</span>
+          <input id="date-to-filter" type="date" />
+        </label>
+        <div class="filter-actions">
+          <button id="apply-filter-btn" type="button" class="filter-btn primary">Aplicar</button>
+          <button id="clear-filter-btn" type="button" class="filter-btn secondary">Limpar</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="open-filter-drawer-btn" class="mobile-filter-trigger" type="button" aria-label="Abrir filtros">${filterIcon()} Filtros</button>
+
+    <div id="active-filter-chips" class="active-filter-chips"></div>
+
     <div class="search-row">
       <div class="InputContainer" role="search">
         <input id="search-input" class="input" placeholder="Buscar por trem, falha ou palavra-chave" type="text" />
@@ -35,6 +73,26 @@ export function dashboardPage() {
         </button>
       </div>
     </div>
+
+    <div id="filter-drawer" class="filter-drawer hidden">
+      <div id="filter-drawer-overlay" class="filter-drawer-overlay"></div>
+      <aside class="filter-drawer-panel">
+        <div class="filter-drawer-head">
+          <strong>${filterIcon()} Filtros</strong>
+          <button id="close-filter-drawer-btn" type="button" class="btn-link">Fechar</button>
+        </div>
+        <div class="filters-grid mobile">
+          <label class="filter-field"><span>Série</span><select id="series-filter-mobile" multiple></select></label>
+          <label class="filter-field"><span>De</span><input id="date-from-filter-mobile" type="date" /></label>
+          <label class="filter-field"><span>Até</span><input id="date-to-filter-mobile" type="date" /></label>
+          <div class="filter-actions">
+            <button id="apply-filter-btn-mobile" type="button" class="filter-btn primary">Aplicar</button>
+            <button id="clear-filter-btn-mobile" type="button" class="filter-btn secondary">Limpar</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
     <div id="failure-list" class="failure-list"></div>
     <div id="pagination" class="pagination hidden">
       <button id="prev-page-btn" class="pagination-btn" type="button">← Anterior</button>
@@ -51,6 +109,58 @@ export async function wireDashboard({ navigate, user }) {
   const nextPageBtn = document.getElementById('next-page-btn');
   const pageIndicator = document.getElementById('page-indicator');
   const searchInput = document.getElementById('search-input');
+
+  function updateFilterOptions(items) {
+    const series = [...new Set(items.map((item) => item.trainId).filter(Boolean))].sort();
+    const mk = (selected = []) => series.map((s) => `<option value="${s}" ${selected.includes(s) ? 'selected' : ''}>${s}</option>`).join('');
+    document.getElementById('series-filter').innerHTML = mk(filterState.selectedSeries);
+    document.getElementById('series-filter-mobile').innerHTML = mk(filterState.selectedSeries);
+  }
+
+  function syncFilterInputs() {
+    const syncSelect = (id) => {
+      const select = document.getElementById(id);
+      [...select.options].forEach((opt) => { opt.selected = filterState.selectedSeries.includes(opt.value); });
+    };
+    syncSelect('series-filter');
+    syncSelect('series-filter-mobile');
+    document.getElementById('date-from-filter').value = filterState.dateFrom;
+    document.getElementById('date-to-filter').value = filterState.dateTo;
+    document.getElementById('date-from-filter-mobile').value = filterState.dateFrom;
+    document.getElementById('date-to-filter-mobile').value = filterState.dateTo;
+  }
+
+  function readFilters(source = 'desktop') {
+    const suffix = source === 'mobile' ? '-mobile' : '';
+    filterState.selectedSeries = [...document.getElementById(`series-filter${suffix}`).selectedOptions].map((o) => o.value);
+    filterState.dateFrom = document.getElementById(`date-from-filter${suffix}`).value;
+    filterState.dateTo = document.getElementById(`date-to-filter${suffix}`).value;
+    syncFilterInputs();
+  }
+
+  function renderFilterChips() {
+    const chipsEl = document.getElementById('active-filter-chips');
+    const chips = [];
+    filterState.selectedSeries.forEach((serie) => chips.push(`<span class="filter-chip">Série: ${serie}</span>`));
+    if (filterState.dateFrom) chips.push(`<span class="filter-chip">De: ${filterState.dateFrom}</span>`);
+    if (filterState.dateTo) chips.push(`<span class="filter-chip">Até: ${filterState.dateTo}</span>`);
+    chipsEl.innerHTML = chips.length ? chips.join('') : '<span class="muted">Nenhum filtro ativo.</span>';
+  }
+
+  function applyFiltersAndRender() {
+    const filtered = displayedItems.filter((item) => {
+      const seriesOk = !filterState.selectedSeries.length || filterState.selectedSeries.includes(item.trainId);
+      const itemDate = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || item.date || Date.now());
+      const fromOk = !filterState.dateFrom || itemDate >= new Date(`${filterState.dateFrom}T00:00:00`);
+      const toOk = !filterState.dateTo || itemDate <= new Date(`${filterState.dateTo}T23:59:59`);
+      return seriesOk && fromOk && toOk;
+    });
+
+    listEl.innerHTML = filtered.length
+      ? filtered.map(failureCard).join('')
+      : '<p class="muted">Nenhuma falha encontrada com os filtros selecionados.</p>';
+    renderFilterChips();
+  }
 
   function updatePaginationUI() {
     paginationEl.classList.remove('hidden');
@@ -79,11 +189,9 @@ export async function wireDashboard({ navigate, user }) {
       currentPage = pageNumber;
 
       loadedItems = [...page.items];
-      if (!page.items.length) {
-        listEl.innerHTML = '<p class="muted">Nenhuma falha encontrada.</p>';
-      } else {
-        listEl.innerHTML = page.items.map(failureCard).join('');
-      }
+      displayedItems = [...page.items];
+      updateFilterOptions(displayedItems);
+      applyFiltersAndRender();
       updatePaginationUI();
     } catch (error) {
       console.error(error);
@@ -120,14 +228,13 @@ export async function wireDashboard({ navigate, user }) {
       .flatMap((result) => result.value);
     const remoteHasErrors = remoteResults.some((result) => result.status === 'rejected');
 
-    const merged = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
+    displayedItems = [...new Map([...localMatches, ...remoteMatches].map((item) => [item.id, item])).values()];
 
-    if (merged.length) {
-      listEl.innerHTML = merged.map(failureCard).join('');
-    } else if (remoteHasErrors) {
+    updateFilterOptions(displayedItems);
+    applyFiltersAndRender();
+
+    if (!displayedItems.length && remoteHasErrors) {
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca completa agora. Mostrando apenas resultados disponíveis.</p>';
-    } else {
-      listEl.innerHTML = '<p class="muted">Nenhum resultado encontrado.</p>';
     }
 
     if (remoteHasErrors) console.error('Falha parcial na busca remota.');
@@ -153,6 +260,21 @@ export async function wireDashboard({ navigate, user }) {
       runSearch();
     }
   });
+
+  document.getElementById('apply-filter-btn').onclick = () => { readFilters('desktop'); applyFiltersAndRender(); };
+  document.getElementById('clear-filter-btn').onclick = () => {
+    filterState.selectedSeries = []; filterState.dateFrom = ''; filterState.dateTo = ''; syncFilterInputs(); applyFiltersAndRender();
+  };
+  document.getElementById('apply-filter-btn-mobile').onclick = () => {
+    readFilters('mobile'); applyFiltersAndRender(); document.getElementById('filter-drawer').classList.add('hidden');
+  };
+  document.getElementById('clear-filter-btn-mobile').onclick = () => {
+    filterState.selectedSeries = []; filterState.dateFrom = ''; filterState.dateTo = ''; syncFilterInputs(); applyFiltersAndRender();
+  };
+
+  document.getElementById('open-filter-drawer-btn').onclick = () => document.getElementById('filter-drawer').classList.remove('hidden');
+  document.getElementById('close-filter-drawer-btn').onclick = () => document.getElementById('filter-drawer').classList.add('hidden');
+  document.getElementById('filter-drawer-overlay').onclick = () => document.getElementById('filter-drawer').classList.add('hidden');
 
   listEl.addEventListener('click', (e) => {
     const id = e.target.dataset.openDetails;

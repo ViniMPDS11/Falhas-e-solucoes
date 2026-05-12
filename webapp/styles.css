@@ -150,3 +150,29 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
   color: #4a6078;
   font-weight: 700;
 }
+
+.filters-desktop-panel { margin: 8px 0 10px; padding: 12px; border:1px solid #dbe6f3; border-radius:12px; background:#fff; }
+.filters-section-title { display:flex; align-items:center; gap:8px; color:#24486f; font-weight:700; margin-bottom:10px; }
+.filters-section-title svg, .mobile-filter-trigger svg, .filter-drawer-head svg { width:16px; height:16px; fill:currentColor; }
+.filters-grid { display:grid; grid-template-columns: minmax(180px, 1.2fr) repeat(2, minmax(130px, 1fr)) auto; gap:10px; align-items:end; }
+.filter-field { display:flex; flex-direction:column; gap:4px; font-size:13px; color:#516980; }
+.filter-field select, .filter-field input { border:1px solid #cfdbeb; border-radius:10px; padding:9px 10px; background:#fff; }
+.filter-field select[multiple] { min-height:42px; }
+.filter-actions { display:flex; gap:8px; }
+.filter-btn.primary { background:#0059ff; color:#fff; }
+.filter-btn.secondary { background:#eef3f8; color:#24486f; border:1px solid #d3dfef; }
+
+.active-filter-chips { display:flex; flex-wrap:wrap; gap:8px; margin: 6px 0 10px; }
+.filter-chip { background:#e9f1ff; color:#1f4f8a; border:1px solid #c8daf8; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:600; }
+.mobile-filter-trigger { display:none; align-items:center; gap:8px; background:#fff; border:1px solid #d1ddec; color:#284b70; font-weight:700; }
+
+.filter-drawer { position:fixed; inset:0; z-index:12000; }
+.filter-drawer-overlay { position:absolute; inset:0; background:rgba(10,18,26,.4); }
+.filter-drawer-panel { position:absolute; right:0; top:0; height:100%; width:min(360px, 90vw); background:#fff; padding:14px; box-shadow:-12px 0 30px rgba(0,0,0,.15); }
+.filter-drawer-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; color:#24486f; }
+.filters-grid.mobile { display:grid; grid-template-columns:1fr; }
+
+@media (max-width: 900px) {
+  .filters-desktop-panel { display:none; }
+  .mobile-filter-trigger { display:inline-flex; margin-top:10px; }
+}
