@@ -22,7 +22,8 @@ body { margin: 0; font-family: Inter, Arial, sans-serif; background: var(--bg); 
 .profile-label { font-size:12px; color:#6b7f94; font-weight:600; letter-spacing:.02em; text-transform:uppercase; }
 .profile-line { color:#334e68; margin:0; }
 .user-name { font-weight: 600; }
-.dashboard-header { display:flex; justify-content:space-between; align-items:center; gap: 12px; }
+.dashboard-header { display:flex; justify-content:space-between; align-items:center; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+.dashboard-title { margin: 0; color:#17324d; font-size: clamp(24px, 2.8vw, 32px); line-height:1.2; letter-spacing:-0.02em; }
 .failure-list { display:grid; gap: 12px; margin: 16px 0; }
 .failure-card { position:relative; background:#ffffff; border:1px solid #dde6f2; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:14px; transition:transform .15s ease, box-shadow .15s ease; }
 .failure-card:hover { transform: translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.1); }
@@ -90,7 +91,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .searchIcon path { fill:#5c6f82; }
 
 .add-failure-btn {
-  width: 180px;
+  min-width: 200px;
+  width: 200px;
   height: 46px;
   cursor: pointer;
   display: flex;
@@ -107,10 +109,14 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .add-failure-btn span { transition: 220ms ease; }
 
 .add-failure-btn .text {
-  transform: translateX(22px);
+  display: block;
+  width: 100%;
+  padding: 0 58px 0 16px;
   color: #fff;
   font-weight: 700;
   font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .add-failure-btn .icon {
@@ -138,3 +144,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 }
 
 .noselect { user-select: none; -webkit-user-select: none; }
+
+@media (max-width: 680px) {
+  .dashboard-header { align-items: stretch; }
+  .add-failure-btn { width: 100%; min-width: 0; }
+}

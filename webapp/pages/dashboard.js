@@ -10,7 +10,7 @@ let loadedItems = [];
 export function dashboardPage() {
   return `
   <section class="dashboard-page">
-    <div class="dashboard-header"><h1>Falhas Registradas</h1><button id="new-failure-btn" class="add-failure-btn noselect"><span class="text">Registrar falha</span><span class="icon"><span class="buttonSpan">+</span></span></button></div>
+    <div class="dashboard-header"><h1 class="dashboard-title">Falhas Registradas</h1><button id="new-failure-btn" class="add-failure-btn noselect"><span class="text">Registrar falha</span><span class="icon"><span class="buttonSpan">+</span></span></button></div>
     <div class="search-row">
       <div class="InputContainer" role="search">
         <input id="search-input" class="input" placeholder="Buscar por trem, falha ou palavra-chave" type="text" />
