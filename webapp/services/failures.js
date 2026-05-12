@@ -31,6 +31,12 @@ function buildFilterConstraints(filters = {}) {
   return constraints;
 }
 
+function hasSeriesPrefix(trainId, selectedSeries = []) {
+  if (!selectedSeries.length) return true;
+  const normalized = String(trainId || '').toUpperCase();
+  return selectedSeries.some((series) => normalized.startsWith(String(series || '').toUpperCase()));
+}
+
 function mapDocToItem(d) {
   const data = d.data();
   const item = {
@@ -48,16 +54,14 @@ function mapDocToItem(d) {
 export async function getFailuresPage({ cursorDoc = null, page = 1, pageSize = 20, sortBy = 'createdAt', sortDir = 'desc', filters = {} } = {}) {
   const selectedSeries = Array.isArray(filters.series) ? filters.series : [];
   if (selectedSeries.length) {
-    const perSeriesLimit = page * pageSize;
-    const constraints = [...buildFilterConstraints(filters), orderBy(sortBy, sortDir), limit(perSeriesLimit)];
-    const snaps = await Promise.all(selectedSeries.map((series) => (
-      getDocs(query(failuresCol, where('trainId', '>=', series), where('trainId', '<', `${series}\uf8ff`), ...constraints))
-    )));
-    const merged = [...new Map(snaps.flatMap((snap) => snap.docs.map((docSnap) => [docSnap.id, mapDocToItem(docSnap)]))).values()]
-      .sort((a, b) => (sortDir === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt));
+    const constraints = [...buildFilterConstraints(filters), orderBy(sortBy, sortDir)];
+    const snap = await getDocs(query(failuresCol, ...constraints));
+    const filtered = snap.docs
+      .filter((docSnap) => hasSeriesPrefix(docSnap.data().trainId, selectedSeries))
+      .map(mapDocToItem);
     const start = (page - 1) * pageSize;
-    const items = merged.slice(start, start + pageSize);
-    return { items, lastDoc: null, hasMore: merged.length > start + pageSize };
+    const items = filtered.slice(start, start + pageSize);
+    return { items, lastDoc: null, hasMore: filtered.length > start + pageSize };
   }
 
   const constraints = [...buildFilterConstraints(filters), orderBy(sortBy, sortDir), limit(pageSize)];
@@ -70,13 +74,9 @@ export async function getFailuresPage({ cursorDoc = null, page = 1, pageSize = 2
 export async function getFailuresTotal(filters = {}) {
   const selectedSeries = Array.isArray(filters.series) ? filters.series : [];
   if (selectedSeries.length) {
-    const constraints = [...buildFilterConstraints(filters)];
-    const counts = await Promise.all(selectedSeries.map(async (series) => {
-      const q = query(failuresCol, where('trainId', '>=', series), where('trainId', '<', `${series}\uf8ff`), ...constraints);
-      const countSnap = await getCountFromServer(q);
-      return countSnap.data().count;
-    }));
-    return counts.reduce((acc, value) => acc + value, 0);
+    const q = query(failuresCol, ...buildFilterConstraints(filters), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.filter((docSnap) => hasSeriesPrefix(docSnap.data().trainId, selectedSeries)).length;
   }
   const q = query(failuresCol, ...buildFilterConstraints(filters));
   const countSnap = await getCountFromServer(q);
