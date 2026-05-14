@@ -53,6 +53,8 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 .search-row { display:flex; margin-top:12px; }
 .filters-btn { margin-left:12px; display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; border:1px solid #bfd3ee; background:linear-gradient(140deg,#fff,#ecf4ff); color:#1a436f; font-weight:700; box-shadow:0 8px 18px rgba(27,76,130,.12); }
 .filters-btn svg { width:18px; height:18px; stroke:currentColor; }
+.filters-btn.active { border-color:#4f86da; background:linear-gradient(140deg,#eaf3ff,#dceaff); color:#0f4c8b; }
+.filters-btn.active .filters-icon path { fill: currentColor; stroke: currentColor; }
 .filters-btn:hover { background:linear-gradient(140deg,#f9fcff,#e4efff); transform:translateY(-1px); }
 .series-legend { margin: 8px 0 0; }
 .filters-modal-backdrop { position:fixed; inset:0; background:rgba(6,18,33,.5); backdrop-filter: blur(3px); display:grid; align-items:center; justify-items:center; z-index:15000; padding:16px; }
@@ -225,3 +227,13 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
     padding: 16px;
   }
 }
+
+
+.failure-form-title { margin:0; color:#17324d; font-size:24px; }
+.failure-form-subtitle { margin:6px 0 14px; color:#60758b; font-size:13px; }
+.failure-form label { display:flex; flex-direction:column; gap:6px; color:#2f4d69; font-weight:600; font-size:14px; }
+.failure-form input, .failure-form textarea, .failure-form select { background:#fbfdff; border:1px solid #cfdced; border-radius:12px; padding:11px 12px; color:#16324c; }
+.failure-form input::placeholder, .failure-form textarea::placeholder { color:#88a0b8; }
+.failure-form textarea { resize: vertical; min-height: 92px; }
+#save-failure-btn { background:linear-gradient(135deg,#0059ff,#3b80ff); color:#fff; border:1px solid #1f5fd1; font-weight:700; }
+#save-failure-btn:hover { filter: brightness(1.03); }
