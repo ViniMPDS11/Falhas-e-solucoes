@@ -16,11 +16,6 @@ export function failureForm({ authorName }) {
       </label>
       <label>Solução
         <textarea name="solution" rows="3" placeholder="Ex: A porta foi normalizada após a realização do reset no módulo DCU da própria porta."></textarea>
-        <textarea name="description" rows="5" required maxlength="300" placeholder="Ex: Porta da cabine não fechou após comando de partida."></textarea>
-        <small class="muted" id="description-counter">0/300</small>
-      </label>
-      <label>Solução
-        <textarea name="solution" rows="3" placeholder="Ex: Reinício do módulo da porta e teste funcional concluído."></textarea>
       </label>
       <p class="muted">Registrado por: ${authorName}</p>
       <div class="actions"><button type="submit" id="save-failure-btn">Salvar Falha</button><button type="button" id="cancel-failure-btn" class="btn-secondary">Cancelar</button></div>
