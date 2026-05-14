@@ -44,3 +44,18 @@ No arquivo `webapp/main.js`, preencha:
 - `authDomain`
 - `projectId`
 - `appId`
+
+## Paginação e listagem de falhas
+- A listagem do dashboard usa paginação no servidor com parâmetros de:
+  - `page` (página atual)
+  - `size` (tamanho da página)
+  - `sortBy`/`sortDir` (ordenação)
+  - filtros (`series`, `dateFrom`, `dateTo`)
+- O estado é persistido na URL para preservar filtros e ordenação ao navegar entre páginas.
+- O painel exibe total de itens, seletor de tamanho de página e navegação completa (primeira, anterior, próxima e última).
+
+### Avaliação: cursor-based pagination
+- Para volume alto e registros com atualização frequente, pagination com cursor é preferível a offset:
+  - mantém melhor performance em coleções grandes;
+  - reduz inconsistências quando novos registros entram entre requisições;
+  - combina bem com Firestore (`startAfter` + `orderBy`).
