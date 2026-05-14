@@ -7,10 +7,15 @@ export function failureForm({ authorName }) {
     <form id="failure-form" class="failure-form" autocomplete="off">
       <label>ID do Trem<input name="trainId" required pattern="^[HTRQUS][0-9]+$" placeholder="Ex: H504" /></label>
       <label>Falha
-        <input name="type" required maxlength="50" placeholder="Ex: Porta travada" />
+        <input name="type" required maxlength="50" placeholder="Ex: Porta não fecha" />
         <small class="muted" id="type-counter">0/50</small>
       </label>
       <label>Descrição
+        <textarea name="description" rows="5" required maxlength="300" placeholder="Ex: Porta 5 do carro H503 não fecha e consta desconhecida no IHM-Cosmos."></textarea>
+        <small class="muted" id="description-counter">0/300</small>
+      </label>
+      <label>Solução
+        <textarea name="solution" rows="3" placeholder="Ex: A porta foi normalizada após a realização do reset no módulo DCU da própria porta."></textarea>
         <textarea name="description" rows="5" required maxlength="300" placeholder="Ex: Porta da cabine não fechou após comando de partida."></textarea>
         <small class="muted" id="description-counter">0/300</small>
       </label>
