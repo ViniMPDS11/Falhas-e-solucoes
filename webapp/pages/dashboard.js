@@ -12,6 +12,7 @@ let pageCursors = [null];
 let hasNextPage = false;
 let totalItems = 0;
 let sortDir = 'desc';
+let searchResults = null;
 const SERIES_OPTIONS = [
   { value: 'H', label: 'H - Hotel' },
   { value: 'Q', label: 'Q - Quebec' },
@@ -88,7 +89,6 @@ export function dashboardPage() {
         <span>Filtros</span>
       </button>
     </div>
-    <p class="series-legend muted">Legenda operacional: cada letra no início do ID do trem indica uma série específica.</p>
     <div id="filters-modal" class="filters-modal-backdrop hidden">
       <div class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filters-title">
         <div class="filters-head">
@@ -157,6 +157,18 @@ export async function wireDashboard({ navigate, user }) {
     };
   }
 
+  function renderSearchPage(pageNumber = 1) {
+    if (!Array.isArray(searchResults)) return;
+    const start = (pageNumber - 1) * pageSize;
+    const items = searchResults.slice(start, start + pageSize);
+    currentPage = pageNumber;
+    totalItems = searchResults.length;
+    hasNextPage = start + pageSize < searchResults.length;
+    listEl.innerHTML = items.length ? items.map(failureCard).join('') : '<p class="muted">Nenhum resultado encontrado.</p>';
+    paginationEl.classList.toggle('hidden', totalItems <= pageSize);
+    updatePaginationUI();
+  }
+
   function updatePaginationUI() {
     paginationEl.classList.remove('hidden');
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -191,6 +203,7 @@ export async function wireDashboard({ navigate, user }) {
     loading = true;
     try {
       if (reset) resetPaginationState();
+      searchResults = null;
       totalItems = await getFailuresTotal(activeFilters);
       await ensureCursorForPage(pageNumber);
       const cursorForPage = pageCursors[pageNumber - 1] ?? null;
@@ -219,10 +232,12 @@ export async function wireDashboard({ navigate, user }) {
   async function runSearch() {
     const term = searchInput.value.trim().toLowerCase();
     if (!term) {
+      searchResults = null;
       await renderPage(1, true);
       return;
     }
     if (term.length < 3) {
+      searchResults = null;
       listEl.innerHTML = '<p class="muted">Digite ao menos 3 caracteres para buscar.</p>';
       paginationEl.classList.add('hidden');
       return;
@@ -231,32 +246,38 @@ export async function wireDashboard({ navigate, user }) {
     listEl.innerHTML = '<p class="muted">Buscando em toda a base...</p>';
     try {
       const results = await searchFailuresGlobal(term, activeFilters);
-      if (results.length) {
-        listEl.innerHTML = results.map(failureCard).join('');
-      } else {
-        listEl.innerHTML = '<p class="muted">Nenhum resultado encontrado.</p>';
-      }
+      searchResults = results;
+      renderSearchPage(1);
     } catch (error) {
+      searchResults = null;
       console.error(error);
       listEl.innerHTML = '<p class="muted">Não foi possível concluir a busca agora.</p>';
+      paginationEl.classList.add('hidden');
     }
-
-    paginationEl.classList.add('hidden');
   }
 
 
   await renderPage(1, true);
 
   prevPageBtn.onclick = () => {
-    if (currentPage > 1) renderPage(currentPage - 1);
+    if (currentPage <= 1) return;
+    if (Array.isArray(searchResults)) renderSearchPage(currentPage - 1);
+    else renderPage(currentPage - 1);
   };
-  firstPageBtn.onclick = () => renderPage(1, true);
+  firstPageBtn.onclick = () => {
+    if (Array.isArray(searchResults)) renderSearchPage(1);
+    else renderPage(1, true);
+  };
   nextPageBtn.onclick = () => {
-    if (hasNextPage) renderPage(currentPage + 1);
+    if (!hasNextPage) return;
+    if (Array.isArray(searchResults)) renderSearchPage(currentPage + 1);
+    else renderPage(currentPage + 1);
   };
   lastPageBtn.onclick = async () => {
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-    if (totalPages > 1) await renderPage(totalPages);
+    if (totalPages <= 1) return;
+    if (Array.isArray(searchResults)) renderSearchPage(totalPages);
+    else await renderPage(totalPages);
   };
   document.getElementById('search-btn').onclick = runSearch;
   openFiltersBtn.onclick = () => { syncFilterUI(); filtersModal.classList.remove('hidden'); };
