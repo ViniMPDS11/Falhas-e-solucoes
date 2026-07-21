@@ -7,10 +7,49 @@
     <link rel="stylesheet" href="webapp/styles.css" />
   </head>
   <body>
-    <section id="auth-screen" class="card auth-card">
-      <h1>Entrar</h1>
-      <p>Faça login com sua conta Google.</p>
-      <button id="google-login-btn" class="google-btn" type="button">Continuar com Google</button>
+    <section id="auth-screen" class="auth-page">
+      <div class="auth-shell">
+        <div class="auth-hero">
+          <span class="auth-badge">Painel operacional</span>
+          <div class="auth-brand-lockup">
+            <div class="auth-brand-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" aria-label="Trem">
+                <path d="M7 3h10a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4l1.2 1.8a.75.75 0 0 1-.62 1.2H16.7a.75.75 0 0 1-.62-.33L14.3 19h-4.6l-1.78 2.67a.75.75 0 0 1-.62.33h-.88a.75.75 0 0 1-.62-1.2L7 19a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm0 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H7Zm1.5 11a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm7 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM7 7.5A1.5 1.5 0 0 1 8.5 6h7A1.5 1.5 0 0 1 17 7.5V10a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7.5Z" />
+              </svg>
+            </div>
+            <div>
+              <p class="auth-eyebrow">Falhas e Soluções</p>
+              <h1>Operação mais organizada, respostas mais rápidas.</h1>
+            </div>
+          </div>
+          <p class="auth-hero-copy">Consulte falhas registradas, acompanhe soluções aplicadas e mantenha o histórico técnico sempre disponível para a equipe.</p>
+          <div class="auth-feature-grid" aria-label="Recursos do sistema">
+            <div><strong>Histórico</strong><span>Registros centralizados por trem.</span></div>
+            <div><strong>Soluções</strong><span>Busca por falha, descrição e solução.</span></div>
+            <div><strong>Equipe</strong><span>Comentários colaborativos seguros.</span></div>
+          </div>
+        </div>
+
+        <div class="card auth-card">
+          <div class="auth-card-head">
+            <div class="auth-logo" aria-hidden="true">TT</div>
+            <div>
+              <p class="auth-kicker">Acesso restrito</p>
+              <h2>Entrar no painel</h2>
+            </div>
+          </div>
+          <p class="auth-card-copy">Use o login Google para acessar o painel operacional da Trivia Trens.</p>
+          <div class="auth-domain-alert" role="note">
+            <strong>Importante:</strong>
+            <span>Entre apenas com seu e-mail corporativo <b>@triviatrens.com.br</b>.</span>
+          </div>
+          <button id="google-login-btn" class="google-btn" type="button">
+            <span class="google-mark" aria-hidden="true">G</span>
+            Continuar com Google
+          </button>
+          <p class="auth-footnote">Contas externas são bloqueadas automaticamente para proteger os dados operacionais.</p>
+        </div>
+      </div>
     </section>
 
     <main id="app-shell" class="hidden app-shell">
