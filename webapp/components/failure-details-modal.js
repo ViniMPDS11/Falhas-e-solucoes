@@ -1,14 +1,5 @@
 import { addFailureComment, getFailureById, getFailureComments } from '../services/failures.js';
-import { formatDate } from '../utils/helpers.js';
-
-function escapeHtml(value = '') {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
+import { escapeHtml, formatDate } from '../utils/helpers.js';
 
 function commentMarkup(comment) {
   return `

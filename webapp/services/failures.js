@@ -129,7 +129,7 @@ export async function searchFailuresGlobal(term, filters = {}) {
     .map((docSnap) => {
       const item = mapDocToItem(docSnap);
       const cached = cache.get(item.id) || {};
-      const haystack = `${item.trainId} ${item.type} ${item.summary} ${cached.description || ''}`.toLowerCase();
+      const haystack = `${item.trainId} ${item.type} ${item.summary} ${cached.description || ''} ${cached.solution || ''}`.toLowerCase();
       return { item, match: keyParts.every((part) => haystack.includes(part)) };
     })
     .filter((entry) => entry.match)
@@ -167,7 +167,7 @@ export async function createFailure({ trainId, type, description, solution, user
     authorName: user.displayName || user.email || 'Sem nome',
     authorUid: user.uid,
     createdAt: serverTimestamp(),
-    searchKeywords: toKeywords({ trainId: normalizedTrainId, type, description }),
+    searchKeywords: toKeywords({ trainId: normalizedTrainId, type, description, solution }),
   };
   const ref = await addDoc(failuresCol, payload);
   return ref.id;
