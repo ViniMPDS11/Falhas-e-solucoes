@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   getCountFromServer,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -60,6 +61,7 @@ function mapDocToItem(d) {
     type: data.type,
     summary: data.summary || summarize(data.description || ''),
     authorName: data.authorName,
+    authorUid: data.authorUid || '',
     createdAt: data.createdAt?.toDate?.() || null,
   };
   cache.set(d.id, { ...item, description: data.description, solution: data.solution || '' });
@@ -109,6 +111,7 @@ export async function searchFailures(term) {
       type: data.type,
       summary: data.summary || summarize(data.description || ''),
       authorName: data.authorName,
+      authorUid: data.authorUid || '',
       createdAt: data.createdAt?.toDate?.() || null,
     };
     cache.set(d.id, { ...item, description: data.description, solution: data.solution || '' });
@@ -129,7 +132,7 @@ export async function searchFailuresGlobal(term, filters = {}) {
     .map((docSnap) => {
       const item = mapDocToItem(docSnap);
       const cached = cache.get(item.id) || {};
-      const haystack = `${item.trainId} ${item.type} ${item.summary} ${cached.description || ''}`.toLowerCase();
+      const haystack = `${item.trainId} ${item.type} ${item.summary} ${cached.description || ''} ${cached.solution || ''}`.toLowerCase();
       return { item, match: keyParts.every((part) => haystack.includes(part)) };
     })
     .filter((entry) => entry.match)
@@ -167,7 +170,7 @@ export async function createFailure({ trainId, type, description, solution, user
     authorName: user.displayName || user.email || 'Sem nome',
     authorUid: user.uid,
     createdAt: serverTimestamp(),
-    searchKeywords: toKeywords({ trainId: normalizedTrainId, type, description }),
+    searchKeywords: toKeywords({ trainId: normalizedTrainId, type, description, solution }),
   };
   const ref = await addDoc(failuresCol, payload);
   return ref.id;
@@ -177,6 +180,25 @@ export async function createFailure({ trainId, type, description, solution, user
 export async function getFailureComments(failureId) {
   const snap = await getDocs(query(commentsCol(failureId), orderBy('createdAt', 'asc')));
   return snap.docs.map(mapCommentDoc);
+}
+
+export async function deleteFailure(failureId, user) {
+  const item = await getFailureById(failureId);
+  if (!item) throw new Error('Falha não encontrada');
+  if (item.authorUid !== user.uid) throw new Error('Apenas o autor pode excluir esta falha');
+
+  const commentsSnap = await getDocs(commentsCol(failureId));
+  await Promise.all(commentsSnap.docs.map((commentDoc) => deleteDoc(commentDoc.ref)));
+  await deleteDoc(doc(db, 'failures', failureId));
+  cache.delete(failureId);
+}
+
+export async function deleteFailureComment(failureId, commentId, user) {
+  const commentRef = doc(db, 'failures', failureId, 'comments', commentId);
+  const snap = await getDoc(commentRef);
+  if (!snap.exists()) throw new Error('Comentário não encontrado');
+  if (snap.data().authorUid !== user.uid) throw new Error('Apenas o autor pode excluir este comentário');
+  await deleteDoc(commentRef);
 }
 
 export async function addFailureComment(failureId, { text, user }) {
