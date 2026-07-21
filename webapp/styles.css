@@ -466,6 +466,41 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
   line-height: 1.65;
 }
 
+.auth-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.auth-scroll-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #9bbdec;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0b5cff, #3e8bff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 12px 26px rgba(0, 89, 255, .2);
+}
+
+.auth-scroll-btn::after {
+  content: '↓';
+  margin-left: 8px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.auth-scroll-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(0, 89, 255, .24);
+}
+
 .auth-feature-grid {
   max-width: 680px;
   display: grid;
@@ -670,6 +705,10 @@ button { border:none; border-radius:10px; padding:10px 12px; cursor:pointer; }
 
   .auth-hero-copy {
     margin-inline: auto;
+  }
+
+  .auth-hero-actions {
+    justify-content: center;
   }
 
   .auth-feature-grid {
