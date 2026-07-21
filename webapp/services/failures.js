@@ -18,6 +18,21 @@ import { summarize, toKeywords } from '../utils/helpers.js';
 const failuresCol = collection(db, 'failures');
 const cache = new Map();
 
+function commentsCol(failureId) {
+  return collection(db, 'failures', failureId, 'comments');
+}
+
+function mapCommentDoc(d) {
+  const data = d.data();
+  return {
+    id: d.id,
+    text: data.text || '',
+    authorName: data.authorName || 'Sem nome',
+    authorUid: data.authorUid || '',
+    createdAt: data.createdAt?.toDate?.() || null,
+  };
+}
+
 function toDateBounds(dateFrom, dateTo) {
   const bounds = [];
   if (dateFrom) bounds.push(where('createdAt', '>=', new Date(`${dateFrom}T00:00:00`)));
@@ -155,5 +170,25 @@ export async function createFailure({ trainId, type, description, solution, user
     searchKeywords: toKeywords({ trainId: normalizedTrainId, type, description }),
   };
   const ref = await addDoc(failuresCol, payload);
+  return ref.id;
+}
+
+
+export async function getFailureComments(failureId) {
+  const snap = await getDocs(query(commentsCol(failureId), orderBy('createdAt', 'asc')));
+  return snap.docs.map(mapCommentDoc);
+}
+
+export async function addFailureComment(failureId, { text, user }) {
+  const normalizedText = String(text || '').trim();
+  if (!normalizedText) throw new Error('Comentário vazio');
+  if (normalizedText.length > 600) throw new Error('Comentário muito longo');
+
+  const ref = await addDoc(commentsCol(failureId), {
+    text: normalizedText,
+    authorName: user.displayName || user.email || 'Sem nome',
+    authorUid: user.uid,
+    createdAt: serverTimestamp(),
+  });
   return ref.id;
 }

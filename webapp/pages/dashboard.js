@@ -324,7 +324,7 @@ export async function wireDashboard({ navigate, user }) {
     const id = e.target.dataset.openDetails;
     if (!id) return;
     try {
-      await openFailureDetailsModal(id);
+      await openFailureDetailsModal(id, user);
     } catch (error) {
       console.error(error);
       alert('Não foi possível carregar os detalhes dessa falha agora.');
